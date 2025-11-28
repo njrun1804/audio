@@ -1,0 +1,482 @@
+[
+  {
+    "canonical": "Whisper",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["OpenAI Whisper", "whisper"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈwɪspər/", "phoneme_sequence": "W IH S P ER"}],
+    "notes": "OpenAI's speech recognition model"
+  },
+  {
+    "canonical": "Whisper v3",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Whisper version 3", "Whisper 3", "v3"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈwɪspər viː θriː/", "phoneme_sequence": "W IH S P ER V IY TH R IY"}],
+    "notes": "Whisper model version 3"
+  },
+  {
+    "canonical": "Whisper large v3",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["large-v3", "whisper large v3", "large v3"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈwɪspər lɑːrdʒ viː θriː/", "phoneme_sequence": "W IH S P ER L AA R JH V IY TH R IY"}],
+    "notes": "Largest Whisper model variant"
+  },
+  {
+    "canonical": "distil-large-v3",
+    "display": "distil-large-v3",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["distil large v3", "distilled Whisper", "distil-whisper"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/dɪˈstɪl lɑːrdʒ viː θriː/", "phoneme_sequence": "D IH S T IH L L AA R JH V IY TH R IY"}],
+    "notes": "Distilled/optimized Whisper model"
+  },
+  {
+    "canonical": "Whisper-Sync",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["WhisperSync", "Whisper Sync"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈwɪspər sɪŋk/", "phoneme_sequence": "W IH S P ER S IH NG K"}],
+    "notes": "Synchronized Whisper variant"
+  },
+  {
+    "canonical": "MLX",
+    "display": "MLX",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Apple MLX", "M L X"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɛm ɛl ɛks/", "phoneme_sequence": "EH M EH L EH K S"}],
+    "notes": "Apple's ML framework for Apple Silicon"
+  },
+  {
+    "canonical": "MLX Whisper",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["mlx-whisper", "MLX-Whisper", "Whisper MLX"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɛm ɛl ɛks ˈwɪspər/", "phoneme_sequence": "EH M EH L EH K S W IH S P ER"}],
+    "notes": "Whisper optimized for Apple MLX"
+  },
+  {
+    "canonical": "MLX-Whisper",
+    "display": "MLX-Whisper",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["mlx whisper", "MLX Whisper"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɛm ɛl ɛks ˈwɪspər/", "phoneme_sequence": "EH M EH L EH K S W IH S P ER"}],
+    "notes": "MLX-optimized Whisper package"
+  },
+  {
+    "canonical": "Parakeet",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["NVIDIA Parakeet", "parakeet"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈpærəkiːt/", "phoneme_sequence": "P AE R AH K IY T"}],
+    "notes": "NVIDIA's ASR model"
+  },
+  {
+    "canonical": "NVIDIA Parakeet",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Parakeet ASR", "Parakeet model"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɛnˈvɪdiə ˈpærəkiːt/", "phoneme_sequence": "EH N V IH D IY AH P AE R AH K IY T"}],
+    "notes": "NVIDIA's speech recognition model"
+  },
+  {
+    "canonical": "CrisperWhisper",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Crisper Whisper", "crisperwhisper"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈkrɪspər ˈwɪspər/", "phoneme_sequence": "K R IH S P ER W IH S P ER"}],
+    "notes": "Enhanced Whisper variant"
+  },
+  {
+    "canonical": "DuckDB",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Duck DB", "duckdb"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/dʌk diː biː/", "phoneme_sequence": "D AH K D IY B IY"}],
+    "notes": "In-process analytical database"
+  },
+  {
+    "canonical": "Parquet",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["parquet", "Apache Parquet"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/pɑːrˈkeɪ/", "phoneme_sequence": "P AA R K EY"}],
+    "notes": "Columnar file format"
+  },
+  {
+    "canonical": "Polars",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["polars", "Polars DataFrame"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈpoʊlərz/", "phoneme_sequence": "P OW L ER Z"}],
+    "notes": "Fast DataFrame library in Rust"
+  },
+  {
+    "canonical": "fitdecode",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["fit decode", "FIT decoder"],
+    "contexts": ["asr_dev", "tech", "running"],
+    "pronunciations": [{"ipa": "/fɪt dɪˈkoʊd/", "phoneme_sequence": "F IH T D IH K OW D"}],
+    "notes": "FIT file parsing library"
+  },
+  {
+    "canonical": "FSRS",
+    "display": "FSRS",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["F S R S", "Free Spaced Repetition Scheduler"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɛf ɛs ɑːr ɛs/", "phoneme_sequence": "EH F EH S AA R EH S"}],
+    "notes": "Spaced repetition algorithm"
+  },
+  {
+    "canonical": "open ASR leaderboard",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["ASR leaderboard", "Hugging Face ASR leaderboard"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈoʊpən eɪ ɛs ɑːr ˈliːdərbɔːrd/", "phoneme_sequence": "OW P AH N EY EH S AA R L IY D ER B AO R D"}],
+    "notes": "ASR model benchmarking"
+  },
+  {
+    "canonical": "Hugging Face",
+    "type": "org",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["HuggingFace", "HF", "huggingface"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈhʌɡɪŋ feɪs/", "phoneme_sequence": "HH AH G IH NG F EY S"}],
+    "notes": "ML model hub and company"
+  },
+  {
+    "canonical": "HuggingFace",
+    "type": "org",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Hugging Face", "HF"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈhʌɡɪŋfeɪs/", "phoneme_sequence": "HH AH G IH NG F EY S"}],
+    "notes": "Alternative spelling"
+  },
+  {
+    "canonical": "Private Cloud Compute",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["PCC", "Apple Private Cloud"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈpraɪvət klaʊd kəmˈpjuːt/", "phoneme_sequence": "P R AY V IH T K L AW D K AH M P Y UW T"}],
+    "notes": "Apple's secure cloud AI infrastructure"
+  },
+  {
+    "canonical": "Foundation Models",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Apple Foundation Models", "on-device models"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/faʊnˈdeɪʃən ˈmɒdəlz/", "phoneme_sequence": "F AW N D EY SH AH N M AA D AH L Z"}],
+    "notes": "Apple's on-device AI models"
+  },
+  {
+    "canonical": "WER",
+    "display": "WER",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Word Error Rate", "word error rate"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/wɜːr/", "phoneme_sequence": "W ER"}],
+    "notes": "ASR accuracy metric"
+  },
+  {
+    "canonical": "CER",
+    "display": "CER",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Character Error Rate", "character error rate"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/sɜːr/", "phoneme_sequence": "S ER"}],
+    "notes": "Character-level ASR accuracy metric"
+  },
+  {
+    "canonical": "RTF",
+    "display": "RTF",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Real Time Factor", "real time factor"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɑːr tiː ɛf/", "phoneme_sequence": "AA R T IY EH F"}],
+    "notes": "Processing speed metric"
+  },
+  {
+    "canonical": "VAD",
+    "display": "VAD",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Voice Activity Detection", "voice activity detection"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/væd/", "phoneme_sequence": "V AE D"}],
+    "notes": "Speech presence detection"
+  },
+  {
+    "canonical": "diarization",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["speaker diarization", "diarisation"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˌdaɪərɪˈzeɪʃən/", "phoneme_sequence": "D AY ER IH Z EY SH AH N"}],
+    "notes": "Speaker identification/segmentation"
+  },
+  {
+    "canonical": "transcription",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["transcript", "speech to text"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/trænˈskrɪpʃən/", "phoneme_sequence": "T R AE N S K R IH P SH AH N"}],
+    "notes": "Speech-to-text output"
+  },
+  {
+    "canonical": "spectrogram",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["mel spectrogram", "spectrograms"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈspektrəɡræm/", "phoneme_sequence": "S P EH K T R AH G R AE M"}],
+    "notes": "Audio frequency visualization"
+  },
+  {
+    "canonical": "mel filterbank",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["mel filter", "mel features"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/mel ˈfɪltərbæŋk/", "phoneme_sequence": "M EH L F IH L T ER B AE NG K"}],
+    "notes": "Audio feature extraction"
+  },
+  {
+    "canonical": "attention",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["self-attention", "cross-attention"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/əˈtenʃən/", "phoneme_sequence": "AH T EH N SH AH N"}],
+    "notes": "Transformer attention mechanism"
+  },
+  {
+    "canonical": "transformer",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Transformer", "transformer model"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/trænsˈfɔːrmər/", "phoneme_sequence": "T R AE N S F AO R M ER"}],
+    "notes": "Neural network architecture"
+  },
+  {
+    "canonical": "encoder-decoder",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["encoder decoder", "seq2seq"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɪnˈkoʊdər dɪˈkoʊdər/", "phoneme_sequence": "IH N K OW D ER D IH K OW D ER"}],
+    "notes": "Sequence-to-sequence architecture"
+  },
+  {
+    "canonical": "beam search",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["beam decoding"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/biːm sɜːrtʃ/", "phoneme_sequence": "B IY M S ER CH"}],
+    "notes": "Decoding algorithm"
+  },
+  {
+    "canonical": "greedy decoding",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["greedy search"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈɡriːdi dɪˈkoʊdɪŋ/", "phoneme_sequence": "G R IY D IY D IH K OW D IH NG"}],
+    "notes": "Simple decoding algorithm"
+  },
+  {
+    "canonical": "language model",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["LM", "LLM"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈlæŋɡwɪdʒ ˈmɒdəl/", "phoneme_sequence": "L AE NG G W IH JH M AA D AH L"}],
+    "notes": "Text probability model"
+  },
+  {
+    "canonical": "acoustic model",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["AM"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/əˈkuːstɪk ˈmɒdəl/", "phoneme_sequence": "AH K UW S T IH K M AA D AH L"}],
+    "notes": "Audio-to-phoneme model"
+  },
+  {
+    "canonical": "fine-tuning",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["finetuning", "fine tuning"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/faɪn ˈtuːnɪŋ/", "phoneme_sequence": "F AY N T UW N IH NG"}],
+    "notes": "Model adaptation training"
+  },
+  {
+    "canonical": "quantization",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["quantized", "int8", "int4"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˌkwɒntɪˈzeɪʃən/", "phoneme_sequence": "K W AA N T IH Z EY SH AH N"}],
+    "notes": "Model compression technique"
+  },
+  {
+    "canonical": "ONNX",
+    "display": "ONNX",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Open Neural Network Exchange", "onnx"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ɒnɪks/", "phoneme_sequence": "AA N IH K S"}],
+    "notes": "Model interchange format"
+  },
+  {
+    "canonical": "CoreML",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Core ML", "coreml"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/kɔːr ɛm ɛl/", "phoneme_sequence": "K AO R EH M EH L"}],
+    "notes": "Apple's ML framework"
+  },
+  {
+    "canonical": "PyTorch",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["pytorch", "torch"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈpaɪtɔːrtʃ/", "phoneme_sequence": "P AY T AO R CH"}],
+    "notes": "ML framework"
+  },
+  {
+    "canonical": "TensorFlow",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["tensorflow", "TF"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈtensərfloʊ/", "phoneme_sequence": "T EH N S ER F L OW"}],
+    "notes": "Google's ML framework"
+  },
+  {
+    "canonical": "CUDA",
+    "display": "CUDA",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["cuda"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈkuːdə/", "phoneme_sequence": "K UW D AH"}],
+    "notes": "NVIDIA GPU computing platform"
+  },
+  {
+    "canonical": "Metal",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["Apple Metal", "Metal API"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈmetəl/", "phoneme_sequence": "M EH T AH L"}],
+    "notes": "Apple's GPU framework"
+  },
+  {
+    "canonical": "Neural Engine",
+    "type": "product",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["ANE", "Apple Neural Engine"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈnjʊərəl ˈendʒɪn/", "phoneme_sequence": "N Y UH R AH L EH N JH IH N"}],
+    "notes": "Apple's neural processing hardware"
+  },
+  {
+    "canonical": "hotword",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["hot word", "wake word", "keyword"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈhɒtwɜːrd/", "phoneme_sequence": "HH AA T W ER D"}],
+    "notes": "Activation phrase detection"
+  },
+  {
+    "canonical": "biasing",
+    "type": "jargon",
+    "tier": "D",
+    "boost_weight": 2.0,
+    "aliases": ["contextual biasing", "word boosting"],
+    "contexts": ["asr_dev", "tech"],
+    "pronunciations": [{"ipa": "/ˈbaɪəsɪŋ/", "phoneme_sequence": "B AY AH S IH NG"}],
+    "notes": "Boosting specific terms in ASR"
+  }
+]

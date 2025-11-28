@@ -1,0 +1,310 @@
+[
+  {
+    "canonical": "Alphabet",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["GOOG", "GOOGL", "Google parent"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈælfəbet/", "phoneme_sequence": "AE L F AH B EH T"}],
+    "notes": "Google's parent company"
+  },
+  {
+    "canonical": "Google",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["GOOG", "Alphabet"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈɡuːɡəl/", "phoneme_sequence": "G UW G AH L"}],
+    "notes": "Tech company (Alphabet subsidiary)"
+  },
+  {
+    "canonical": "GOOG",
+    "display": "GOOG",
+    "type": "misc",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Alphabet", "Google stock"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ɡuːɡ/", "phoneme_sequence": "G UW G"}],
+    "notes": "Alphabet stock ticker"
+  },
+  {
+    "canonical": "Microsoft",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["MSFT"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈmaɪkroʊsɒft/", "phoneme_sequence": "M AY K R OW S AO F T"}],
+    "notes": "Tech company"
+  },
+  {
+    "canonical": "MSFT",
+    "display": "MSFT",
+    "type": "misc",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Microsoft stock"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ɛm ɛs ɛf tiː/", "phoneme_sequence": "EH M EH S EH F T IY"}],
+    "notes": "Microsoft stock ticker"
+  },
+  {
+    "canonical": "Apple",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["AAPL"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈæpəl/", "phoneme_sequence": "AE P AH L"}],
+    "notes": "Tech company"
+  },
+  {
+    "canonical": "AAPL",
+    "display": "AAPL",
+    "type": "misc",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Apple stock"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/eɪ eɪ piː ɛl/", "phoneme_sequence": "EY EY P IY EH L"}],
+    "notes": "Apple stock ticker"
+  },
+  {
+    "canonical": "NVIDIA",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["NVDA", "Nvidia"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ɛnˈvɪdiə/", "phoneme_sequence": "EH N V IH D IY AH"}],
+    "notes": "GPU/AI chip company"
+  },
+  {
+    "canonical": "NVDA",
+    "display": "NVDA",
+    "type": "misc",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["NVIDIA stock"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ɛn viː diː eɪ/", "phoneme_sequence": "EH N V IY D IY EY"}],
+    "notes": "NVIDIA stock ticker"
+  },
+  {
+    "canonical": "Amazon",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["AMZN", "AWS parent"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈæməzɒn/", "phoneme_sequence": "AE M AH Z AA N"}],
+    "notes": "E-commerce and cloud company"
+  },
+  {
+    "canonical": "AMZN",
+    "display": "AMZN",
+    "type": "misc",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Amazon stock"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/eɪ ɛm zed ɛn/", "phoneme_sequence": "EY EH M Z EH N"}],
+    "notes": "Amazon stock ticker"
+  },
+  {
+    "canonical": "Meta",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["META", "Facebook parent"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈmetə/", "phoneme_sequence": "M EH T AH"}],
+    "notes": "Facebook's parent company"
+  },
+  {
+    "canonical": "Tesla",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["TSLA"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈteslə/", "phoneme_sequence": "T EH S L AH"}],
+    "notes": "Electric vehicle company"
+  },
+  {
+    "canonical": "S&P 500",
+    "type": "misc",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["S and P 500", "S&P", "SPX", "SPY"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ɛs ənd piː faɪv ˈhʌndrəd/", "phoneme_sequence": "EH S AH N D P IY F AY V HH AH N D R AH D"}],
+    "notes": "US stock market index"
+  },
+  {
+    "canonical": "Magnificent Seven",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Mag Seven", "Mag 7", "the Seven"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/mæɡˈnɪfɪsənt ˈsevən/", "phoneme_sequence": "M AE G N IH F IH S AH N T S EH V AH N"}],
+    "notes": "Top 7 tech mega-caps"
+  },
+  {
+    "canonical": "Mag Seven",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Magnificent Seven", "Mag 7"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/mæɡ ˈsevən/", "phoneme_sequence": "M AE G S EH V AH N"}],
+    "notes": "Abbreviated Magnificent Seven"
+  },
+  {
+    "canonical": "Mag 7",
+    "display": "Mag 7",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Magnificent Seven", "Mag Seven"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/mæɡ ˈsevən/", "phoneme_sequence": "M AE G S EH V AH N"}],
+    "notes": "Shorthand for Magnificent Seven"
+  },
+  {
+    "canonical": "Big Three",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["the Big 3"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/bɪɡ θriː/", "phoneme_sequence": "B IH G TH R IY"}],
+    "notes": "Top 3 mega-cap stocks"
+  },
+  {
+    "canonical": "Faltering Four",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["the Four", "Faltering 4"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ˈfɔːltərɪŋ fɔːr/", "phoneme_sequence": "F AO L T ER IH NG F AO R"}],
+    "notes": "Underperforming Mag 7 stocks"
+  },
+  {
+    "canonical": "Buffett",
+    "type": "person",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Warren Buffett", "Warren", "Oracle of Omaha"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ˈbʌfɪt/", "phoneme_sequence": "B AH F IH T"}],
+    "notes": "Legendary investor"
+  },
+  {
+    "canonical": "twenty punch card",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["20 punch card", "punch card investing"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ˈtwenti pʌntʃ kɑːrd/", "phoneme_sequence": "T W EH N T IY P AH N CH K AA R D"}],
+    "notes": "Buffett's concentrated investing metaphor"
+  },
+  {
+    "canonical": "FAANG",
+    "display": "FAANG",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["FANG", "FAANG stocks"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/fæŋ/", "phoneme_sequence": "F AE NG"}],
+    "notes": "Legacy big tech grouping"
+  },
+  {
+    "canonical": "PE ratio",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["P/E", "price to earnings", "PE"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/piː iː ˈreɪʃioʊ/", "phoneme_sequence": "P IY IY R EY SH IY OW"}],
+    "notes": "Price-to-earnings valuation metric"
+  },
+  {
+    "canonical": "market cap",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["market capitalization", "mcap"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ˈmɑːrkɪt kæp/", "phoneme_sequence": "M AA R K IH T K AE P"}],
+    "notes": "Total company value"
+  },
+  {
+    "canonical": "ETF",
+    "display": "ETF",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["exchange traded fund", "ETFs"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/iː tiː ɛf/", "phoneme_sequence": "IY T IY EH F"}],
+    "notes": "Exchange-Traded Fund"
+  },
+  {
+    "canonical": "index fund",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["index funds", "passive fund"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ˈɪndeks fʌnd/", "phoneme_sequence": "IH N D EH K S F AH N D"}],
+    "notes": "Passive investment vehicle"
+  },
+  {
+    "canonical": "dividend",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["dividends", "div"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ˈdɪvɪdend/", "phoneme_sequence": "D IH V IH D EH N D"}],
+    "notes": "Shareholder payout"
+  },
+  {
+    "canonical": "Berkshire Hathaway",
+    "type": "org",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["Berkshire", "BRK"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/ˈbɜːrkʃɪr ˈhæθəweɪ/", "phoneme_sequence": "B ER K SH IH R HH AE TH AH W EY"}],
+    "notes": "Buffett's conglomerate"
+  },
+  {
+    "canonical": "bull market",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["bull run", "bullish"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/bʊl ˈmɑːrkɪt/", "phoneme_sequence": "B UH L M AA R K IH T"}],
+    "notes": "Rising market"
+  },
+  {
+    "canonical": "bear market",
+    "type": "jargon",
+    "tier": "F",
+    "boost_weight": 1.5,
+    "aliases": ["bearish", "bear"],
+    "contexts": ["investing"],
+    "pronunciations": [{"ipa": "/bɛr ˈmɑːrkɪt/", "phoneme_sequence": "B EH R M AA R K IH T"}],
+    "notes": "Declining market"
+  }
+]

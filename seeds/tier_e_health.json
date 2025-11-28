@@ -1,0 +1,397 @@
+[
+  {
+    "canonical": "Omegawave",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["OmegaWave", "Omega Wave", "omega wave"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/oʊˈmeɪɡəweɪv/", "phoneme_sequence": "OW M EY G AH W EY V"}],
+    "notes": "HRV and readiness monitoring system"
+  },
+  {
+    "canonical": "OmegaWave",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["Omegawave", "Omega Wave"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/oʊˈmeɪɡəweɪv/", "phoneme_sequence": "OW M EY G AH W EY V"}],
+    "notes": "Alternative capitalization"
+  },
+  {
+    "canonical": "Garmin Quantix",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["Quantix", "Quantix 7"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈɡɑːrmɪn ˈkwɒntɪks/", "phoneme_sequence": "G AA R M IH N K W AA N T IH K S"}],
+    "notes": "Garmin marine/outdoor watch"
+  },
+  {
+    "canonical": "recovery band",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["recovery strap", "fitness band"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/rɪˈkʌvəri bænd/", "phoneme_sequence": "R IH K AH V ER IY B AE N D"}],
+    "notes": "Wearable recovery tracker"
+  },
+  {
+    "canonical": "Withings Body Comp",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["Body Comp", "Withings scale"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈwɪðɪŋz ˈbɒdi kɒmp/", "phoneme_sequence": "W IH DH IH NG Z B AA D IY K AA M P"}],
+    "notes": "Withings body composition scale"
+  },
+  {
+    "canonical": "Body Scan",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["Withings Body Scan", "BodyScan"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈbɒdi skæn/", "phoneme_sequence": "B AA D IY S K AE N"}],
+    "notes": "Withings advanced health scale"
+  },
+  {
+    "canonical": "BPM Vision",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["Withings BPM Vision", "BPM"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/biː piː ɛm ˈvɪʒən/", "phoneme_sequence": "B IY P IY EH M V IH ZH AH N"}],
+    "notes": "Withings blood pressure monitor"
+  },
+  {
+    "canonical": "AirPods Pro 3",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["AirPods Pro third gen", "APP3"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈɛrpɒdz proʊ θriː/", "phoneme_sequence": "EH R P AA D Z P R OW TH R IY"}],
+    "notes": "Apple's premium earbuds with health features"
+  },
+  {
+    "canonical": "Shure MV7",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["MV7", "Shure MV7+"],
+    "contexts": ["tech"],
+    "pronunciations": [{"ipa": "/ʃʊr ɛm viː ˈsevən/", "phoneme_sequence": "SH UH R EH M V IY S EH V AH N"}],
+    "notes": "Podcast/recording microphone"
+  },
+  {
+    "canonical": "Sony WH-1000XM6",
+    "type": "product",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["WH-1000XM6", "XM6", "Sony headphones"],
+    "contexts": ["tech"],
+    "pronunciations": [{"ipa": "/ˈsoʊni ˈdʌbəljuː eɪtʃ wʌn ˈθaʊzənd ɛks ɛm sɪks/", "phoneme_sequence": "S OW N IY D AH B AH L Y UW EY CH W AH N TH AW Z AH N D EH K S EH M S IH K S"}],
+    "notes": "Sony noise-canceling headphones"
+  },
+  {
+    "canonical": "heart rate variability",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["HRV", "hrv"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/hɑːrt reɪt ˌveəriəˈbɪlɪti/", "phoneme_sequence": "HH AA R T R EY T V EH R IY AH B IH L IH T IY"}],
+    "notes": "Key recovery metric"
+  },
+  {
+    "canonical": "HRV",
+    "display": "HRV",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["heart rate variability", "H R V"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/eɪtʃ ɑːr viː/", "phoneme_sequence": "EY CH AA R V IY"}],
+    "notes": "Heart Rate Variability abbreviation"
+  },
+  {
+    "canonical": "sympathetic overdrive",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["sympathetic dominance", "fight or flight"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˌsɪmpəˈθetɪk ˈoʊvərdraɪv/", "phoneme_sequence": "S IH M P AH TH EH T IH K OW V ER D R AY V"}],
+    "notes": "Autonomic nervous system stress state"
+  },
+  {
+    "canonical": "parasympathetic",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["parasympathetic nervous system", "rest and digest"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˌpærəsɪmpəˈθetɪk/", "phoneme_sequence": "P AE R AH S IH M P AH TH EH T IH K"}],
+    "notes": "Recovery branch of autonomic nervous system"
+  },
+  {
+    "canonical": "readiness score",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["readiness", "daily readiness"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/ˈredinəs skɔːr/", "phoneme_sequence": "R EH D IY N AH S S K AO R"}],
+    "notes": "Daily training readiness metric"
+  },
+  {
+    "canonical": "sleep score",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["sleep quality", "sleep rating"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/sliːp skɔːr/", "phoneme_sequence": "S L IY P S K AO R"}],
+    "notes": "Nightly sleep quality metric"
+  },
+  {
+    "canonical": "sleep index",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["sleep efficiency"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/sliːp ˈɪndeks/", "phoneme_sequence": "S L IY P IH N D EH K S"}],
+    "notes": "Sleep quality index"
+  },
+  {
+    "canonical": "REM sleep",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["REM", "rapid eye movement"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/rɛm sliːp/", "phoneme_sequence": "R EH M S L IY P"}],
+    "notes": "Dream sleep stage"
+  },
+  {
+    "canonical": "deep sleep",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["slow wave sleep", "SWS"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/diːp sliːp/", "phoneme_sequence": "D IY P S L IY P"}],
+    "notes": "Restorative sleep stage"
+  },
+  {
+    "canonical": "sleep latency",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["time to sleep", "sleep onset"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/sliːp ˈleɪtənsi/", "phoneme_sequence": "S L IY P L EY T AH N S IY"}],
+    "notes": "Time to fall asleep"
+  },
+  {
+    "canonical": "resting heart rate",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["RHR", "resting HR"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/ˈrestɪŋ hɑːrt reɪt/", "phoneme_sequence": "R EH S T IH NG HH AA R T R EY T"}],
+    "notes": "Baseline heart rate"
+  },
+  {
+    "canonical": "recovery score",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["recovery", "daily recovery"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/rɪˈkʌvəri skɔːr/", "phoneme_sequence": "R IH K AH V ER IY S K AO R"}],
+    "notes": "Daily recovery metric"
+  },
+  {
+    "canonical": "strain",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["daily strain", "strain score"],
+    "contexts": ["health", "running"],
+    "pronunciations": [{"ipa": "/streɪn/", "phoneme_sequence": "S T R EY N"}],
+    "notes": "Whoop's activity metric"
+  },
+  {
+    "canonical": "SpO2",
+    "display": "SpO2",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["blood oxygen", "oxygen saturation", "pulse ox"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ɛs piː oʊ tuː/", "phoneme_sequence": "EH S P IY OW T UW"}],
+    "notes": "Blood oxygen saturation"
+  },
+  {
+    "canonical": "respiratory rate",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["breathing rate", "RR"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˈrespərətɔːri reɪt/", "phoneme_sequence": "R EH S P ER AH T AO R IY R EY T"}],
+    "notes": "Breaths per minute"
+  },
+  {
+    "canonical": "skin temperature",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["body temp", "temperature deviation"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/skɪn ˈtemprətʃər/", "phoneme_sequence": "S K IH N T EH M P R AH CH ER"}],
+    "notes": "Overnight skin temperature"
+  },
+  {
+    "canonical": "circadian rhythm",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["circadian", "body clock"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/sɜːrˈkeɪdiən ˈrɪðəm/", "phoneme_sequence": "S ER K EY D IY AH N R IH DH AH M"}],
+    "notes": "24-hour biological cycle"
+  },
+  {
+    "canonical": "chronotype",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["sleep chronotype", "morning person"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˈkroʊnoʊtaɪp/", "phoneme_sequence": "K R OW N OW T AY P"}],
+    "notes": "Individual sleep timing preference"
+  },
+  {
+    "canonical": "RMSSD",
+    "display": "RMSSD",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["root mean square successive differences"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ɑːr ɛm ɛs ɛs diː/", "phoneme_sequence": "AA R EH M EH S EH S D IY"}],
+    "notes": "HRV calculation method"
+  },
+  {
+    "canonical": "SDNN",
+    "display": "SDNN",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["standard deviation NN"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ɛs diː ɛn ɛn/", "phoneme_sequence": "EH S D IY EH N EH N"}],
+    "notes": "HRV metric - standard deviation"
+  },
+  {
+    "canonical": "autonomic nervous system",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["ANS", "autonomic"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˌɔːtəˈnɒmɪk ˈnɜːrvəs ˈsɪstəm/", "phoneme_sequence": "AO T AH N AA M IH K N ER V AH S S IH S T AH M"}],
+    "notes": "Involuntary nervous system"
+  },
+  {
+    "canonical": "blood pressure",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["BP", "systolic/diastolic"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/blʌd ˈpreʃər/", "phoneme_sequence": "B L AH D P R EH SH ER"}],
+    "notes": "Cardiovascular metric"
+  },
+  {
+    "canonical": "systolic",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["systolic pressure"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/sɪˈstɒlɪk/", "phoneme_sequence": "S IH S T AA L IH K"}],
+    "notes": "Top blood pressure number"
+  },
+  {
+    "canonical": "diastolic",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["diastolic pressure"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˌdaɪəˈstɒlɪk/", "phoneme_sequence": "D AY AH S T AA L IH K"}],
+    "notes": "Bottom blood pressure number"
+  },
+  {
+    "canonical": "body composition",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["body comp", "composition"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˈbɒdi ˌkɒmpəˈzɪʃən/", "phoneme_sequence": "B AA D IY K AA M P AH Z IH SH AH N"}],
+    "notes": "Fat/muscle/water ratio"
+  },
+  {
+    "canonical": "BMI",
+    "display": "BMI",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["body mass index"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/biː ɛm aɪ/", "phoneme_sequence": "B IY EH M AY"}],
+    "notes": "Body Mass Index"
+  },
+  {
+    "canonical": "visceral fat",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["belly fat", "abdominal fat"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˈvɪsərəl fæt/", "phoneme_sequence": "V IH S ER AH L F AE T"}],
+    "notes": "Internal abdominal fat"
+  },
+  {
+    "canonical": "metabolic age",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["fitness age"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˌmetəˈbɒlɪk eɪdʒ/", "phoneme_sequence": "M EH T AH B AA L IH K EY JH"}],
+    "notes": "Calculated metabolic health age"
+  },
+  {
+    "canonical": "basal metabolic rate",
+    "type": "jargon",
+    "tier": "E",
+    "boost_weight": 2.0,
+    "aliases": ["BMR", "resting metabolism"],
+    "contexts": ["health"],
+    "pronunciations": [{"ipa": "/ˈbeɪsəl ˌmetəˈbɒlɪk reɪt/", "phoneme_sequence": "B EY S AH L M EH T AH B AA L IH K R EY T"}],
+    "notes": "Resting calorie burn"
+  }
+]

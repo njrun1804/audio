@@ -1,0 +1,12 @@
+{
+  "name": "running",
+  "description": "Running, training, and endurance sports context profile",
+  "include_tiers": ["A", "B", "E"],
+  "include_contexts": ["running", "health"],
+  "max_entries": 150,
+  "priority_boost": {
+    "running": 1.5,
+    "health": 1.2
+  },
+  "notes": "Use this profile for running-related voice notes, training logs, and race discussions"
+}

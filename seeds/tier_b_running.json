@@ -1,0 +1,766 @@
+[
+  {
+    "canonical": "Garmin Forerunner 970",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Forerunner 970", "FR970", "FR 970", "970"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈɡɑːrmɪn ˈfɔːrˌrʌnər naɪn ˈsevənti/", "phoneme_sequence": "G AA R M IH N F AO R R AH N ER N AY N S EH V AH N T IY"}],
+    "notes": "Garmin running watch - flagship model"
+  },
+  {
+    "canonical": "FR 970",
+    "display": "FR 970",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["FR970", "Forerunner 970"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ɛf ɑːr naɪn ˈsevənti/", "phoneme_sequence": "EH F AA R N AY N S EH V AH N T IY"}],
+    "notes": "Abbreviated form of Garmin Forerunner 970"
+  },
+  {
+    "canonical": "HRM 600",
+    "display": "HRM 600",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["HRM600", "HRM-600", "Garmin HRM 600"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/eɪtʃ ɑːr ɛm sɪks ˈhʌndrəd/", "phoneme_sequence": "EY CH AA R EH M S IH K S HH AH N D R AH D"}],
+    "notes": "Garmin heart rate monitor strap"
+  },
+  {
+    "canonical": "HRM strap",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["heart rate strap", "HR strap", "chest strap", "HRM"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/eɪtʃ ɑːr ɛm stræp/", "phoneme_sequence": "EY CH AA R EH M S T R AE P"}],
+    "notes": "Generic heart rate monitor chest strap"
+  },
+  {
+    "canonical": "TrainingPeaks",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Training Peaks", "TP"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈtreɪnɪŋ piːks/", "phoneme_sequence": "T R EY N IH NG P IY K S"}],
+    "notes": "Training analytics platform"
+  },
+  {
+    "canonical": "Strava",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": [],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈstrɑːvə/", "phoneme_sequence": "S T R AA V AH"}],
+    "notes": "Social fitness app"
+  },
+  {
+    "canonical": "Runna",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Runna app", "Runner"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈrʌnə/", "phoneme_sequence": "R AH N AH"}],
+    "notes": "Running coaching app - often misheard as 'runner'"
+  },
+  {
+    "canonical": "AllTrails",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["All Trails", "all trails"],
+    "contexts": ["running", "travel"],
+    "pronunciations": [{"ipa": "/ɔːl treɪlz/", "phoneme_sequence": "AO L T R EY L Z"}],
+    "notes": "Trail discovery app"
+  },
+  {
+    "canonical": "Navesink Challenge",
+    "type": "event",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Navesink", "the Challenge"],
+    "contexts": ["running", "travel"],
+    "pronunciations": [{"ipa": "/ˈnævɪsɪŋk ˈtʃælɪndʒ/", "phoneme_sequence": "N AE V IH S IH NG K CH AE L IH N JH"}],
+    "notes": "Local running race - tricky name for ASR"
+  },
+  {
+    "canonical": "Navesink Challenge 12K",
+    "type": "event",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Navesink 12K", "the 12K"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈnævɪsɪŋk ˈtʃælɪndʒ twɛlv keɪ/", "phoneme_sequence": "N AE V IH S IH NG K CH AE L IH N JH T W EH L V K EY"}],
+    "notes": "Navesink Challenge race distance"
+  },
+  {
+    "canonical": "Hamburg Marathon",
+    "type": "event",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Hamburg", "Hamburg 2025"],
+    "contexts": ["running", "travel"],
+    "pronunciations": [{"ipa": "/ˈhæmbɜːrɡ ˈmærəθən/", "phoneme_sequence": "HH AE M B ER G M AE R AH TH AH N"}],
+    "notes": "Target marathon race"
+  },
+  {
+    "canonical": "Hartshorne Woods",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Hartshorne", "the Woods"],
+    "contexts": ["running", "travel"],
+    "pronunciations": [{"ipa": "/ˈhɑːrtsˌhɔːrn wʊdz/", "phoneme_sequence": "HH AA R T S HH AO R N W UH D Z"}],
+    "notes": "Local trail running area"
+  },
+  {
+    "canonical": "Fort Clinch",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Ft. Clinch", "Fort Clinch State Park"],
+    "contexts": ["running", "travel"],
+    "pronunciations": [{"ipa": "/fɔːrt klɪntʃ/", "phoneme_sequence": "F AO R T K L IH N CH"}],
+    "notes": "Florida state park - trail running"
+  },
+  {
+    "canonical": "Amelia Island",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Amelia", "AI"],
+    "contexts": ["running", "travel"],
+    "pronunciations": [{"ipa": "/əˈmiːliə ˈaɪlənd/", "phoneme_sequence": "AH M IY L IY AH AY L AH N D"}],
+    "notes": "Florida island - running destination"
+  },
+  {
+    "canonical": "VO2max",
+    "display": "VO2max",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["VO2 max", "V O 2 max", "vo2max", "max oxygen uptake"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/viː oʊ tuː mæks/", "phoneme_sequence": "V IY OW T UW M AE K S"}],
+    "notes": "Maximum oxygen uptake metric"
+  },
+  {
+    "canonical": "Efficiency Factor",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["EF", "efficiency"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ɪˈfɪʃənsi ˈfæktər/", "phoneme_sequence": "IH F IH SH AH N S IY F AE K T ER"}],
+    "notes": "TrainingPeaks running efficiency metric"
+  },
+  {
+    "canonical": "decoupling",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["cardiac decoupling", "aerobic decoupling", "Pa:Hr"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/diːˈkʌplɪŋ/", "phoneme_sequence": "D IY K AH P L IH NG"}],
+    "notes": "Pace to heart rate drift metric"
+  },
+  {
+    "canonical": "body battery",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Body Battery", "BB"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈbɒdi ˈbætəri/", "phoneme_sequence": "B AA D IY B AE T ER IY"}],
+    "notes": "Garmin energy level metric"
+  },
+  {
+    "canonical": "training readiness",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["readiness", "Training Readiness"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈtreɪnɪŋ ˈredinəs/", "phoneme_sequence": "T R EY N IH NG R EH D IY N AH S"}],
+    "notes": "Garmin daily training readiness score"
+  },
+  {
+    "canonical": "double threshold",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["double threshold day", "DT session"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈdʌbəl ˈθreʃoʊld/", "phoneme_sequence": "D AH B AH L TH R EH SH OW L D"}],
+    "notes": "Two threshold workouts in one day"
+  },
+  {
+    "canonical": "Norwegian double threshold",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Norwegian method", "Norwegian training"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/nɔːrˈwiːdʒən ˈdʌbəl ˈθreʃoʊld/", "phoneme_sequence": "N AO R W IY JH AH N D AH B AH L TH R EH SH OW L D"}],
+    "notes": "Ingebrigtsen-style training approach"
+  },
+  {
+    "canonical": "marathon pace",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["MP", "M pace", "goal pace"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈmærəθən peɪs/", "phoneme_sequence": "M AE R AH TH AH N P EY S"}],
+    "notes": "Target marathon race pace"
+  },
+  {
+    "canonical": "sub-three",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["sub 3", "sub-3", "under three hours"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/sʌb θriː/", "phoneme_sequence": "S AH B TH R IY"}],
+    "notes": "Sub-3 hour marathon goal"
+  },
+  {
+    "canonical": "lactate threshold",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["LT", "threshold", "LT1", "LT2", "lactate"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈlækteɪt ˈθreʃoʊld/", "phoneme_sequence": "L AE K T EY T TH R EH SH OW L D"}],
+    "notes": "Blood lactate accumulation threshold"
+  },
+  {
+    "canonical": "Finley",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Coach Finley", "Fin"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈfɪnli/", "phoneme_sequence": "F IH N L IY"}],
+    "notes": "Running coach"
+  },
+  {
+    "canonical": "Kirby",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Coach Kirby"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈkɜːrbi/", "phoneme_sequence": "K ER B IY"}],
+    "notes": "Running coach"
+  },
+  {
+    "canonical": "Holder",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Coach Holder"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈhoʊldər/", "phoneme_sequence": "HH OW L D ER"}],
+    "notes": "Running coach"
+  },
+  {
+    "canonical": "tempo run",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["tempo", "tempo workout"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈtempoʊ rʌn/", "phoneme_sequence": "T EH M P OW R AH N"}],
+    "notes": "Sustained threshold pace workout"
+  },
+  {
+    "canonical": "easy run",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["easy", "recovery run", "Z2 run"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈiːzi rʌn/", "phoneme_sequence": "IY Z IY R AH N"}],
+    "notes": "Low intensity aerobic run"
+  },
+  {
+    "canonical": "long run",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["long", "LR", "weekend long run"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/lɒŋ rʌn/", "phoneme_sequence": "L AO NG R AH N"}],
+    "notes": "Extended duration endurance run"
+  },
+  {
+    "canonical": "interval",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["intervals", "interval session", "track workout"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈɪntərvəl/", "phoneme_sequence": "IH N T ER V AH L"}],
+    "notes": "High intensity repeated efforts"
+  },
+  {
+    "canonical": "fartlek",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["fartleks"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈfɑːrtlek/", "phoneme_sequence": "F AA R T L EH K"}],
+    "notes": "Swedish speed play - unstructured intervals"
+  },
+  {
+    "canonical": "strides",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["stride", "striders", "accelerations"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/straɪdz/", "phoneme_sequence": "S T R AY D Z"}],
+    "notes": "Short fast accelerations"
+  },
+  {
+    "canonical": "cadence",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["steps per minute", "SPM"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈkeɪdəns/", "phoneme_sequence": "K EY D AH N S"}],
+    "notes": "Running step rate"
+  },
+  {
+    "canonical": "ground contact time",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["GCT", "contact time"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ɡraʊnd ˈkɒntækt taɪm/", "phoneme_sequence": "G R AW N D K AA N T AE K T T AY M"}],
+    "notes": "Running form metric"
+  },
+  {
+    "canonical": "vertical oscillation",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["VO", "bounce", "oscillation"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈvɜːrtɪkəl ˌɒsɪˈleɪʃən/", "phoneme_sequence": "V ER T IH K AH L AA S IH L EY SH AH N"}],
+    "notes": "Up-down movement while running"
+  },
+  {
+    "canonical": "running power",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["power", "watts", "running watts"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈrʌnɪŋ ˈpaʊər/", "phoneme_sequence": "R AH N IH NG P AW ER"}],
+    "notes": "Running effort in watts"
+  },
+  {
+    "canonical": "training load",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["load", "TL", "acute load"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈtreɪnɪŋ loʊd/", "phoneme_sequence": "T R EY N IH NG L OW D"}],
+    "notes": "Cumulative training stress"
+  },
+  {
+    "canonical": "training stress score",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["TSS", "stress score"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈtreɪnɪŋ stres skɔːr/", "phoneme_sequence": "T R EY N IH NG S T R EH S S K AO R"}],
+    "notes": "TrainingPeaks workout intensity metric"
+  },
+  {
+    "canonical": "chronic training load",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["CTL", "fitness", "chronic load"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈkrɒnɪk ˈtreɪnɪŋ loʊd/", "phoneme_sequence": "K R AA N IH K T R EY N IH NG L OW D"}],
+    "notes": "Long-term training stress average"
+  },
+  {
+    "canonical": "acute training load",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["ATL", "fatigue", "acute load"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/əˈkjuːt ˈtreɪnɪŋ loʊd/", "phoneme_sequence": "AH K Y UW T T R EY N IH NG L OW D"}],
+    "notes": "Short-term training stress average"
+  },
+  {
+    "canonical": "training stress balance",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["TSB", "form", "freshness"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈtreɪnɪŋ stres ˈbæləns/", "phoneme_sequence": "T R EY N IH NG S T R EH S B AE L AH N S"}],
+    "notes": "CTL minus ATL - freshness indicator"
+  },
+  {
+    "canonical": "race predictor",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["predicted time", "race prediction"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/reɪs prɪˈdɪktər/", "phoneme_sequence": "R EY S P R IH D IH K T ER"}],
+    "notes": "Estimated race finish time"
+  },
+  {
+    "canonical": "negative split",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["negative splits", "neg split"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈneɡətɪv splɪt/", "phoneme_sequence": "N EH G AH T IH V S P L IH T"}],
+    "notes": "Running second half faster than first"
+  },
+  {
+    "canonical": "positive split",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["positive splits", "pos split"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈpɒzɪtɪv splɪt/", "phoneme_sequence": "P AA Z IH T IH V S P L IH T"}],
+    "notes": "Running first half faster than second"
+  },
+  {
+    "canonical": "even split",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["even splits", "even pacing"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈiːvən splɪt/", "phoneme_sequence": "IY V AH N S P L IH T"}],
+    "notes": "Consistent pacing throughout"
+  },
+  {
+    "canonical": "taper",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["tapering", "race taper"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈteɪpər/", "phoneme_sequence": "T EY P ER"}],
+    "notes": "Pre-race volume reduction"
+  },
+  {
+    "canonical": "peak week",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["peak", "highest mileage week"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/piːk wiːk/", "phoneme_sequence": "P IY K W IY K"}],
+    "notes": "Highest volume training week"
+  },
+  {
+    "canonical": "base building",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["base phase", "aerobic base"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/beɪs ˈbɪldɪŋ/", "phoneme_sequence": "B EY S B IH L D IH NG"}],
+    "notes": "Foundational aerobic training phase"
+  },
+  {
+    "canonical": "speed phase",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["speed work", "sharpening"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/spiːd feɪz/", "phoneme_sequence": "S P IY D F EY Z"}],
+    "notes": "High intensity training block"
+  },
+  {
+    "canonical": "race phase",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["race block", "competition phase"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/reɪs feɪz/", "phoneme_sequence": "R EY S F EY Z"}],
+    "notes": "Pre-race training period"
+  },
+  {
+    "canonical": "Kipchoge",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Eliud Kipchoge", "Eliud"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/kɪpˈtʃoʊɡeɪ/", "phoneme_sequence": "K IH P CH OW G EY"}],
+    "notes": "World record marathoner"
+  },
+  {
+    "canonical": "Ingebrigtsen",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Jakob Ingebrigtsen", "Jakob"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈɪŋɡəbrɪɡtsən/", "phoneme_sequence": "IH NG G AH B R IH G T S AH N"}],
+    "notes": "Norwegian middle-distance runner"
+  },
+  {
+    "canonical": "Maffetone",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Phil Maffetone", "MAF method"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˌmæfɪˈtoʊni/", "phoneme_sequence": "M AE F IH T OW N IY"}],
+    "notes": "Aerobic training methodology creator"
+  },
+  {
+    "canonical": "MAF",
+    "display": "MAF",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["MAF heart rate", "Maffetone method", "180 formula"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/mæf/", "phoneme_sequence": "M AE F"}],
+    "notes": "Maximum Aerobic Function - Maffetone formula"
+  },
+  {
+    "canonical": "Zone 2",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Z2", "zone two", "aerobic zone"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/zoʊn tuː/", "phoneme_sequence": "Z OW N T UW"}],
+    "notes": "Low intensity aerobic training zone"
+  },
+  {
+    "canonical": "Zone 3",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Z3", "zone three", "tempo zone"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/zoʊn θriː/", "phoneme_sequence": "Z OW N TH R IY"}],
+    "notes": "Moderate intensity zone - often called junk miles zone"
+  },
+  {
+    "canonical": "Zone 4",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Z4", "zone four", "threshold zone"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/zoʊn fɔːr/", "phoneme_sequence": "Z OW N F AO R"}],
+    "notes": "Threshold intensity zone"
+  },
+  {
+    "canonical": "Zone 5",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Z5", "zone five", "VO2max zone"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/zoʊn faɪv/", "phoneme_sequence": "Z OW N F AY V"}],
+    "notes": "High intensity zone"
+  },
+  {
+    "canonical": "polarized training",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["polarized", "80/20"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈpoʊləraɪzd ˈtreɪnɪŋ/", "phoneme_sequence": "P OW L ER AY Z D T R EY N IH NG"}],
+    "notes": "Training intensity distribution method"
+  },
+  {
+    "canonical": "pyramidal training",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["pyramidal"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/pɪˈræmɪdəl ˈtreɪnɪŋ/", "phoneme_sequence": "P IH R AE M IH D AH L T R EY N IH NG"}],
+    "notes": "Training intensity distribution method"
+  },
+  {
+    "canonical": "threshold training",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["threshold-focused"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈθreʃoʊld ˈtreɪnɪŋ/", "phoneme_sequence": "TH R EH SH OW L D T R EY N IH NG"}],
+    "notes": "Training emphasis on lactate threshold"
+  },
+  {
+    "canonical": "GPS watch",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["running watch", "sports watch"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/dʒiː piː ɛs wɒtʃ/", "phoneme_sequence": "JH IY P IY EH S W AA CH"}],
+    "notes": "GPS-enabled running watch"
+  },
+  {
+    "canonical": "carbon plate",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["carbon fiber plate", "super shoe"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈkɑːrbən pleɪt/", "phoneme_sequence": "K AA R B AH N P L EY T"}],
+    "notes": "Racing shoe technology"
+  },
+  {
+    "canonical": "super shoe",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["super shoes", "carbon shoe"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈsuːpər ʃuː/", "phoneme_sequence": "S UW P ER SH UW"}],
+    "notes": "High-tech racing shoe category"
+  },
+  {
+    "canonical": "Vaporfly",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Nike Vaporfly", "VF"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈveɪpərflaɪ/", "phoneme_sequence": "V EY P ER F L AY"}],
+    "notes": "Nike racing shoe"
+  },
+  {
+    "canonical": "Alphafly",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Nike Alphafly", "AF"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈælfəflaɪ/", "phoneme_sequence": "AE L F AH F L AY"}],
+    "notes": "Nike top racing shoe"
+  },
+  {
+    "canonical": "COROS",
+    "type": "org",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["Coros"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈkɔːrɒs/", "phoneme_sequence": "K AO R AA S"}],
+    "notes": "GPS watch company"
+  },
+  {
+    "canonical": "Suunto",
+    "type": "org",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": [],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈsuːntoʊ/", "phoneme_sequence": "S UW N T OW"}],
+    "notes": "Finnish GPS watch company"
+  },
+  {
+    "canonical": "recovery day",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["rest day", "off day"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/rɪˈkʌvəri deɪ/", "phoneme_sequence": "R IH K AH V ER IY D EY"}],
+    "notes": "Low/no training day"
+  },
+  {
+    "canonical": "cross training",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["cross-training", "XT"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/krɒs ˈtreɪnɪŋ/", "phoneme_sequence": "K R AO S T R EY N IH NG"}],
+    "notes": "Non-running exercise"
+  },
+  {
+    "canonical": "weekly mileage",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["weekly volume", "miles per week", "MPW"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/ˈwiːkli ˈmaɪlɪdʒ/", "phoneme_sequence": "W IY K L IY M AY L IH JH"}],
+    "notes": "Total running distance per week"
+  },
+  {
+    "canonical": "bonk",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["bonking", "hit the wall"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/bɒŋk/", "phoneme_sequence": "B AA NG K"}],
+    "notes": "Glycogen depletion during race"
+  },
+  {
+    "canonical": "gel",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["energy gel", "gels", "GU"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/dʒel/", "phoneme_sequence": "JH EH L"}],
+    "notes": "Running nutrition product"
+  },
+  {
+    "canonical": "carb loading",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["carbo loading", "carbohydrate loading"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/kɑːrb ˈloʊdɪŋ/", "phoneme_sequence": "K AA R B L OW D IH NG"}],
+    "notes": "Pre-race nutrition strategy"
+  },
+  {
+    "canonical": "brick workout",
+    "type": "jargon",
+    "tier": "B",
+    "boost_weight": 2.5,
+    "aliases": ["brick", "bike-run"],
+    "contexts": ["running"],
+    "pronunciations": [{"ipa": "/brɪk ˈwɜːrkaʊt/", "phoneme_sequence": "B R IH K W ER K AW T"}],
+    "notes": "Multi-sport back-to-back workout"
+  }
+]

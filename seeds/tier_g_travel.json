@@ -1,0 +1,354 @@
+[
+  {
+    "canonical": "Ritz Carlton",
+    "type": "org",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Ritz-Carlton", "The Ritz", "Ritz"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/rɪts ˈkɑːrltən/", "phoneme_sequence": "R IH T S K AA R L T AH N"}],
+    "notes": "Luxury hotel chain"
+  },
+  {
+    "canonical": "Ritz Carlton Amelia Island",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Ritz Amelia", "Amelia Island Ritz"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/rɪts ˈkɑːrltən əˈmiːliə ˈaɪlənd/", "phoneme_sequence": "R IH T S K AA R L T AH N AH M IY L IY AH AY L AH N D"}],
+    "notes": "Ritz Carlton resort in Florida"
+  },
+  {
+    "canonical": "Four Seasons",
+    "type": "org",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["FS", "Four Seasons Hotel"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/fɔːr ˈsiːzənz/", "phoneme_sequence": "F AO R S IY Z AH N Z"}],
+    "notes": "Luxury hotel chain"
+  },
+  {
+    "canonical": "Navesink",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Navesink River area"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈnævɪsɪŋk/", "phoneme_sequence": "N AE V IH S IH NG K"}],
+    "notes": "NJ area - often mispronounced"
+  },
+  {
+    "canonical": "Navesink River",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["the Navesink", "Navesink waterway"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈnævɪsɪŋk ˈrɪvər/", "phoneme_sequence": "N AE V IH S IH NG K R IH V ER"}],
+    "notes": "NJ tidal estuary"
+  },
+  {
+    "canonical": "Hartshorne Woods",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Hartshorne", "the Woods"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈhɑːrtsˌhɔːrn wʊdz/", "phoneme_sequence": "HH AA R T S HH AO R N W UH D Z"}],
+    "notes": "NJ county park with trails"
+  },
+  {
+    "canonical": "Fort Clinch",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Ft. Clinch", "Fort Clinch State Park"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/fɔːrt klɪntʃ/", "phoneme_sequence": "F AO R T K L IH N CH"}],
+    "notes": "Florida state park"
+  },
+  {
+    "canonical": "Amelia Island",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Amelia", "AI"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/əˈmiːliə ˈaɪlənd/", "phoneme_sequence": "AH M IY L IY AH AY L AH N D"}],
+    "notes": "Florida barrier island"
+  },
+  {
+    "canonical": "Undici",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Undici restaurant"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/unˈdiːtʃi/", "phoneme_sequence": "UW N D IY CH IY"}],
+    "notes": "Italian restaurant - 'eleven' in Italian"
+  },
+  {
+    "canonical": "Undici Taverna",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Undici", "the Taverna"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/unˈdiːtʃi təˈvɜːrnə/", "phoneme_sequence": "UW N D IY CH IY T AH V ER N AH"}],
+    "notes": "Italian restaurant full name"
+  },
+  {
+    "canonical": "Valerie Fund Gala",
+    "type": "event",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Valerie Fund", "the Gala"],
+    "contexts": ["travel", "personal"],
+    "pronunciations": [{"ipa": "/ˈvæləri fʌnd ˈɡɑːlə/", "phoneme_sequence": "V AE L ER IY F AH N D G AA L AH"}],
+    "notes": "Charity event"
+  },
+  {
+    "canonical": "Zebra Longwing",
+    "type": "misc",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Zebra Longwing butterfly", "Heliconius charithonia"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˈziːbrə ˈlɒŋwɪŋ/", "phoneme_sequence": "Z IY B R AH L AO NG W IH NG"}],
+    "notes": "Florida state butterfly"
+  },
+  {
+    "canonical": "Hamburg",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Hamburg Germany"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈhæmbɜːrɡ/", "phoneme_sequence": "HH AE M B ER G"}],
+    "notes": "German city - marathon destination"
+  },
+  {
+    "canonical": "Rumson",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": [],
+    "contexts": ["travel", "personal"],
+    "pronunciations": [{"ipa": "/ˈrʌmsən/", "phoneme_sequence": "R AH M S AH N"}],
+    "notes": "NJ town"
+  },
+  {
+    "canonical": "Red Bank",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": [],
+    "contexts": ["travel", "personal"],
+    "pronunciations": [{"ipa": "/red bæŋk/", "phoneme_sequence": "R EH D B AE NG K"}],
+    "notes": "NJ town"
+  },
+  {
+    "canonical": "Monmouth County",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Monmouth"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈmɒnməθ ˈkaʊnti/", "phoneme_sequence": "M AA N M AH TH K AW N T IY"}],
+    "notes": "NJ county"
+  },
+  {
+    "canonical": "Sandy Hook",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Sandy Hook beach", "the Hook"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈsændi hʊk/", "phoneme_sequence": "S AE N D IY HH UH K"}],
+    "notes": "NJ peninsula/beach"
+  },
+  {
+    "canonical": "Gateway National Recreation Area",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Gateway", "GNRA"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈɡeɪtweɪ ˈnæʃənəl ˌrekriˈeɪʃən ˈɛriə/", "phoneme_sequence": "G EY T W EY N AE SH AH N AH L R EH K R IY EY SH AH N EH R IY AH"}],
+    "notes": "National park area including Sandy Hook"
+  },
+  {
+    "canonical": "Twin Lights",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Twin Lights State Historic Site", "Highlands lighthouse"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/twɪn laɪts/", "phoneme_sequence": "T W IH N L AY T S"}],
+    "notes": "Historic lighthouse in Highlands NJ"
+  },
+  {
+    "canonical": "Highlands",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Highlands NJ"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/ˈhaɪləndz/", "phoneme_sequence": "HH AY L AH N D Z"}],
+    "notes": "NJ borough"
+  },
+  {
+    "canonical": "Atlantic Highlands",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Atlantic Highlands NJ"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ətˈlæntɪk ˈhaɪləndz/", "phoneme_sequence": "AH T L AE N T IH K HH AY L AH N D Z"}],
+    "notes": "NJ borough"
+  },
+  {
+    "canonical": "Sea Bright",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Seabright"],
+    "contexts": ["travel", "running"],
+    "pronunciations": [{"ipa": "/siː braɪt/", "phoneme_sequence": "S IY B R AY T"}],
+    "notes": "NJ beach town"
+  },
+  {
+    "canonical": "Long Branch",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": [],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/lɒŋ brɑːntʃ/", "phoneme_sequence": "L AO NG B R AE N CH"}],
+    "notes": "NJ beach city"
+  },
+  {
+    "canonical": "Asbury Park",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Asbury"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˈæzbəri pɑːrk/", "phoneme_sequence": "AE Z B ER IY P AA R K"}],
+    "notes": "NJ beach city"
+  },
+  {
+    "canonical": "Fernandina Beach",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Fernandina", "downtown Fernandina"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˌfɜːrnənˈdiːnə biːtʃ/", "phoneme_sequence": "F ER N AH N D IY N AH B IY CH"}],
+    "notes": "Florida town on Amelia Island"
+  },
+  {
+    "canonical": "Jacksonville",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Jax", "JAX"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˈdʒæksənvɪl/", "phoneme_sequence": "JH AE K S AH N V IH L"}],
+    "notes": "Florida city near Amelia Island"
+  },
+  {
+    "canonical": "JFK",
+    "display": "JFK",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Kennedy Airport", "JFK Airport"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/dʒeɪ ɛf keɪ/", "phoneme_sequence": "JH EY EH F K EY"}],
+    "notes": "New York airport"
+  },
+  {
+    "canonical": "Newark",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["EWR", "Newark Airport", "Newark Liberty"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˈnjuːərk/", "phoneme_sequence": "N Y UW ER K"}],
+    "notes": "NJ city/airport"
+  },
+  {
+    "canonical": "Peter Luger",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Luger's", "Peter Luger Steak House"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˈpiːtər ˈluːɡər/", "phoneme_sequence": "P IY T ER L UW G ER"}],
+    "notes": "Famous Brooklyn steakhouse"
+  },
+  {
+    "canonical": "Keens",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Keens Steakhouse", "Keen's"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/kiːnz/", "phoneme_sequence": "K IY N Z"}],
+    "notes": "NYC steakhouse"
+  },
+  {
+    "canonical": "Rao's",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Rao's Italian", "Raos"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˈraʊz/", "phoneme_sequence": "R AW Z"}],
+    "notes": "Famous Italian restaurant"
+  },
+  {
+    "canonical": "Carbone",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["Carbone NYC"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/kɑːrˈboʊneɪ/", "phoneme_sequence": "K AA R B OW N EY"}],
+    "notes": "Italian-American restaurant"
+  },
+  {
+    "canonical": "NYC",
+    "display": "NYC",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": ["New York City", "New York", "the city"],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ɛn waɪ siː/", "phoneme_sequence": "EH N W AY S IY"}],
+    "notes": "New York City"
+  },
+  {
+    "canonical": "Manhattan",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": [],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/mænˈhætən/", "phoneme_sequence": "M AE N HH AE T AH N"}],
+    "notes": "NYC borough"
+  },
+  {
+    "canonical": "Brooklyn",
+    "type": "location",
+    "tier": "G",
+    "boost_weight": 1.5,
+    "aliases": [],
+    "contexts": ["travel"],
+    "pronunciations": [{"ipa": "/ˈbrʊklɪn/", "phoneme_sequence": "B R UH K L IH N"}],
+    "notes": "NYC borough"
+  }
+]

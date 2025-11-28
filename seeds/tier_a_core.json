@@ -1,0 +1,594 @@
+[
+  {
+    "canonical": "Mike",
+    "type": "person",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["mike"],
+    "contexts": ["personal", "running", "health", "work"],
+    "pronunciations": [{"ipa": "/maɪk/", "phoneme_sequence": "M AY K"}],
+    "notes": "Primary user - highest priority term"
+  },
+  {
+    "canonical": "Mike Edwards",
+    "type": "person",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Mike E", "Michael Edwards"],
+    "contexts": ["personal", "work"],
+    "pronunciations": [{"ipa": "/maɪk ˈɛdwərdz/", "phoneme_sequence": "M AY K EH D W ER D Z"}],
+    "notes": "Full name of primary user"
+  },
+  {
+    "canonical": "Superfit",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Super Fit", "super fit", "SuperFit"],
+    "contexts": ["personal", "running", "health"],
+    "pronunciations": [{"ipa": "/ˈsuːpərfɪt/", "phoneme_sequence": "S UW P ER F IH T"}],
+    "notes": "Personal fitness/health tracking system"
+  },
+  {
+    "canonical": "Project Sub-3",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Sub-3", "Sub 3", "sub three", "Project Sub 3", "sub-three project"],
+    "contexts": ["running", "personal"],
+    "pronunciations": [{"ipa": "/ˈprɒdʒekt sʌb θriː/", "phoneme_sequence": "P R AA JH EH K T S AH B TH R IY"}],
+    "notes": "Sub-3 hour marathon training project"
+  },
+  {
+    "canonical": "Two-Spike",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Two Spike", "2-Spike", "2 Spike", "TwoSpike"],
+    "contexts": ["running", "personal"],
+    "pronunciations": [{"ipa": "/tuː spaɪk/", "phoneme_sequence": "T UW S P AY K"}],
+    "notes": "Training methodology or system"
+  },
+  {
+    "canonical": "Hybrid Power Bowl",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Power Bowl", "HPB"],
+    "contexts": ["health", "personal"],
+    "pronunciations": [{"ipa": "/ˈhaɪbrɪd ˈpaʊər boʊl/", "phoneme_sequence": "HH AY B R IH D P AW ER B OW L"}],
+    "notes": "Nutrition/meal concept"
+  },
+  {
+    "canonical": "Finney",
+    "type": "person",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Fin", "finney"],
+    "contexts": ["personal", "family"],
+    "pronunciations": [{"ipa": "/ˈfɪni/", "phoneme_sequence": "F IH N IY"}],
+    "notes": "Family member - often misheard as 'funny' or 'fini'"
+  },
+  {
+    "canonical": "Finney Potter",
+    "type": "person",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Finney P", "Fin Potter"],
+    "contexts": ["personal", "family"],
+    "pronunciations": [{"ipa": "/ˈfɪni ˈpɒtər/", "phoneme_sequence": "F IH N IY P AA T ER"}],
+    "notes": "Full name - family member"
+  },
+  {
+    "canonical": "Apple",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": [],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈæpəl/", "phoneme_sequence": "AE P AH L"}],
+    "notes": "Technology company - ecosystem primary"
+  },
+  {
+    "canonical": "Apple Intelligence",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Apple AI", "AI on Apple"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/ˈæpəl ɪnˈtelɪdʒəns/", "phoneme_sequence": "AE P AH L IH N T EH L IH JH AH N S"}],
+    "notes": "Apple's on-device AI features"
+  },
+  {
+    "canonical": "Apple Health",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Health app", "HealthKit"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈæpəl helθ/", "phoneme_sequence": "AE P AH L HH EH L TH"}],
+    "notes": "Apple's health data platform"
+  },
+  {
+    "canonical": "Apple Watch",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Watch", "iWatch"],
+    "contexts": ["health", "running", "tech"],
+    "pronunciations": [{"ipa": "/ˈæpəl wɒtʃ/", "phoneme_sequence": "AE P AH L W AA CH"}],
+    "notes": "Apple smartwatch line"
+  },
+  {
+    "canonical": "Apple Watch Ultra",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Watch Ultra", "Ultra", "AWU"],
+    "contexts": ["health", "running", "tech"],
+    "pronunciations": [{"ipa": "/ˈæpəl wɒtʃ ˈʌltrə/", "phoneme_sequence": "AE P AH L W AA CH AH L T R AH"}],
+    "notes": "Apple's rugged/athletic smartwatch"
+  },
+  {
+    "canonical": "MacBook Air",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["MBA", "Air", "MacBook"],
+    "contexts": ["tech", "work"],
+    "pronunciations": [{"ipa": "/mæk bʊk ɛr/", "phoneme_sequence": "M AE K B UH K EH R"}],
+    "notes": "Apple laptop line"
+  },
+  {
+    "canonical": "MacBook Air M4",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["M4 Air", "MBA M4", "M4 MacBook"],
+    "contexts": ["tech", "work"],
+    "pronunciations": [{"ipa": "/mæk bʊk ɛr ɛm fɔːr/", "phoneme_sequence": "M AE K B UH K EH R EH M F AO R"}],
+    "notes": "M4 chip MacBook Air"
+  },
+  {
+    "canonical": "Mac Studio",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Studio Mac", "the Studio"],
+    "contexts": ["tech", "work", "asr_dev"],
+    "pronunciations": [{"ipa": "/mæk ˈstuːdioʊ/", "phoneme_sequence": "M AE K S T UW D IY OW"}],
+    "notes": "Apple desktop workstation"
+  },
+  {
+    "canonical": "iPad",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["the iPad"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈaɪpæd/", "phoneme_sequence": "AY P AE D"}],
+    "notes": "Apple tablet line"
+  },
+  {
+    "canonical": "iPad Pro",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Pro iPad", "the Pro"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈaɪpæd proʊ/", "phoneme_sequence": "AY P AE D P R OW"}],
+    "notes": "Apple's professional tablet"
+  },
+  {
+    "canonical": "Pixel",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Google Pixel", "the Pixel"],
+    "contexts": ["tech"],
+    "pronunciations": [{"ipa": "/ˈpɪksəl/", "phoneme_sequence": "P IH K S AH L"}],
+    "notes": "Google phone line"
+  },
+  {
+    "canonical": "Pixel Watch",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Google Pixel Watch"],
+    "contexts": ["tech", "health"],
+    "pronunciations": [{"ipa": "/ˈpɪksəl wɒtʃ/", "phoneme_sequence": "P IH K S AH L W AA CH"}],
+    "notes": "Google smartwatch"
+  },
+  {
+    "canonical": "Garmin",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": [],
+    "contexts": ["running", "health", "tech"],
+    "pronunciations": [{"ipa": "/ˈɡɑːrmɪn/", "phoneme_sequence": "G AA R M IH N"}],
+    "notes": "GPS/fitness device company"
+  },
+  {
+    "canonical": "Garmin Connect",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Connect", "GC"],
+    "contexts": ["running", "health"],
+    "pronunciations": [{"ipa": "/ˈɡɑːrmɪn kəˈnekt/", "phoneme_sequence": "G AA R M IH N K AH N EH K T"}],
+    "notes": "Garmin's fitness data platform"
+  },
+  {
+    "canonical": "Oura",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Oura Health"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈʊrə/", "phoneme_sequence": "UH R AH"}],
+    "notes": "Sleep/recovery ring company - often misheard as 'aura'"
+  },
+  {
+    "canonical": "Oura Ring",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["the Oura", "Oura ring", "aura ring"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈʊrə rɪŋ/", "phoneme_sequence": "UH R AH R IH NG"}],
+    "notes": "Sleep and recovery tracking ring"
+  },
+  {
+    "canonical": "Oura Ring 4",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["OR4", "Ring 4", "Oura 4", "Oura Gen 4"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈʊrə rɪŋ fɔːr/", "phoneme_sequence": "UH R AH R IH NG F AO R"}],
+    "notes": "Latest generation Oura Ring"
+  },
+  {
+    "canonical": "Whoop",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["WHOOP"],
+    "contexts": ["health", "running", "tech"],
+    "pronunciations": [{"ipa": "/wuːp/", "phoneme_sequence": "W UW P"}],
+    "notes": "Fitness/recovery wearable company"
+  },
+  {
+    "canonical": "Whoop 5.0",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Whoop 5", "WHOOP 5.0", "Whoop five"],
+    "contexts": ["health", "running", "tech"],
+    "pronunciations": [{"ipa": "/wuːp faɪv pɔɪnt oʊ/", "phoneme_sequence": "W UW P F AY V P OY N T OW"}],
+    "notes": "Latest Whoop wearable generation"
+  },
+  {
+    "canonical": "Whoop MG",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["WHOOP MG", "Whoop medical grade"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/wuːp ɛm dʒiː/", "phoneme_sequence": "W UW P EH M JH IY"}],
+    "notes": "Medical-grade Whoop variant"
+  },
+  {
+    "canonical": "Withings",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Withings Health"],
+    "contexts": ["health", "tech"],
+    "pronunciations": [{"ipa": "/ˈwɪðɪŋz/", "phoneme_sequence": "W IH DH IH NG Z"}],
+    "notes": "Connected health device company - tricky pronunciation"
+  },
+  {
+    "canonical": "Polymarket",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Poly", "poly market"],
+    "contexts": ["investing", "tech"],
+    "pronunciations": [{"ipa": "/ˈpɒliˌmɑːrkɪt/", "phoneme_sequence": "P AA L IY M AA R K IH T"}],
+    "notes": "Prediction market platform"
+  },
+  {
+    "canonical": "ChatGPT",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Chat GPT", "GPT", "chat gpt"],
+    "contexts": ["tech", "asr_dev", "work"],
+    "pronunciations": [{"ipa": "/tʃæt dʒiː piː tiː/", "phoneme_sequence": "CH AE T JH IY P IY T IY"}],
+    "notes": "OpenAI's conversational AI"
+  },
+  {
+    "canonical": "GPT-5 Pro",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["GPT 5 Pro", "GPT5 Pro", "GPT-5"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/dʒiː piː tiː faɪv proʊ/", "phoneme_sequence": "JH IY P IY T IY F AY V P R OW"}],
+    "notes": "OpenAI's advanced model tier"
+  },
+  {
+    "canonical": "OpenAI",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Open AI", "open ai"],
+    "contexts": ["tech", "asr_dev", "investing"],
+    "pronunciations": [{"ipa": "/ˈoʊpən eɪ aɪ/", "phoneme_sequence": "OW P AH N EY AY"}],
+    "notes": "AI research company"
+  },
+  {
+    "canonical": "Claude",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["claude"],
+    "contexts": ["tech", "asr_dev", "work"],
+    "pronunciations": [{"ipa": "/klɔːd/", "phoneme_sequence": "K L AO D"}],
+    "notes": "Anthropic's AI assistant"
+  },
+  {
+    "canonical": "Claude Sonnet",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Sonnet", "Claude 3.5 Sonnet", "Claude Sonnet 3.5"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/klɔːd ˈsɒnɪt/", "phoneme_sequence": "K L AO D S AA N IH T"}],
+    "notes": "Claude model variant"
+  },
+  {
+    "canonical": "Anthropic",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": [],
+    "contexts": ["tech", "asr_dev", "investing"],
+    "pronunciations": [{"ipa": "/ænˈθrɒpɪk/", "phoneme_sequence": "AE N TH R AA P IH K"}],
+    "notes": "AI safety company - maker of Claude"
+  },
+  {
+    "canonical": "Gemini",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Google Gemini", "Bard"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/ˈdʒemɪnaɪ/", "phoneme_sequence": "JH EH M IH N AY"}],
+    "notes": "Google's AI model"
+  },
+  {
+    "canonical": "NotebookLM",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Notebook LM", "Google NotebookLM", "NBLM"],
+    "contexts": ["tech", "asr_dev", "work"],
+    "pronunciations": [{"ipa": "/ˈnoʊtbʊk ɛl ɛm/", "phoneme_sequence": "N OW T B UH K EH L EH M"}],
+    "notes": "Google's AI-powered notebook tool"
+  },
+  {
+    "canonical": "Superwhisper",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Super Whisper", "SuperWhisper", "super whisper"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/ˈsuːpərˌwɪspər/", "phoneme_sequence": "S UW P ER W IH S P ER"}],
+    "notes": "Voice transcription app using Whisper"
+  },
+  {
+    "canonical": "Cleft",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": [],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/kleft/", "phoneme_sequence": "K L EH F T"}],
+    "notes": "Voice/transcription tool"
+  },
+  {
+    "canonical": "Granola",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Granola AI", "Granola Notes"],
+    "contexts": ["tech", "work"],
+    "pronunciations": [{"ipa": "/ɡrəˈnoʊlə/", "phoneme_sequence": "G R AH N OW L AH"}],
+    "notes": "AI meeting notes tool"
+  },
+  {
+    "canonical": "Willow",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Google Willow"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/ˈwɪloʊ/", "phoneme_sequence": "W IH L OW"}],
+    "notes": "Google's quantum computing chip"
+  },
+  {
+    "canonical": "iPhone",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["the iPhone"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈaɪfoʊn/", "phoneme_sequence": "AY F OW N"}],
+    "notes": "Apple smartphone"
+  },
+  {
+    "canonical": "iPhone 16 Pro",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["16 Pro", "iPhone Pro"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈaɪfoʊn sɪksˈtiːn proʊ/", "phoneme_sequence": "AY F OW N S IH K S T IY N P R OW"}],
+    "notes": "Current iPhone model"
+  },
+  {
+    "canonical": "AirPods",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Air Pods", "the AirPods"],
+    "contexts": ["tech", "personal", "running"],
+    "pronunciations": [{"ipa": "/ˈɛrpɒdz/", "phoneme_sequence": "EH R P AA D Z"}],
+    "notes": "Apple wireless earbuds"
+  },
+  {
+    "canonical": "AirPods Pro",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["AirPods Pro 2", "the Pros"],
+    "contexts": ["tech", "personal", "running", "health"],
+    "pronunciations": [{"ipa": "/ˈɛrpɒdz proʊ/", "phoneme_sequence": "EH R P AA D Z P R OW"}],
+    "notes": "Apple's premium wireless earbuds"
+  },
+  {
+    "canonical": "Vision Pro",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Apple Vision Pro", "AVP"],
+    "contexts": ["tech"],
+    "pronunciations": [{"ipa": "/ˈvɪʒən proʊ/", "phoneme_sequence": "V IH ZH AH N P R OW"}],
+    "notes": "Apple's spatial computing headset"
+  },
+  {
+    "canonical": "HomePod",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["HomePod mini", "the HomePod"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈhoʊmpɒd/", "phoneme_sequence": "HH OW M P AA D"}],
+    "notes": "Apple smart speaker"
+  },
+  {
+    "canonical": "Apple TV",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["ATV", "Apple TV 4K"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈæpəl tiː viː/", "phoneme_sequence": "AE P AH L T IY V IY"}],
+    "notes": "Apple streaming device"
+  },
+  {
+    "canonical": "Siri",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Hey Siri"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈsɪri/", "phoneme_sequence": "S IH R IY"}],
+    "notes": "Apple's voice assistant"
+  },
+  {
+    "canonical": "iCloud",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["iCloud Drive", "iCloud+"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈaɪklaʊd/", "phoneme_sequence": "AY K L AW D"}],
+    "notes": "Apple cloud services"
+  },
+  {
+    "canonical": "Shortcuts",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Apple Shortcuts", "Siri Shortcuts"],
+    "contexts": ["tech", "personal"],
+    "pronunciations": [{"ipa": "/ˈʃɔːrtkʌts/", "phoneme_sequence": "SH AO R T K AH T S"}],
+    "notes": "Apple automation app"
+  },
+  {
+    "canonical": "Claude Opus",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Opus", "Claude 3 Opus"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/klɔːd ˈoʊpəs/", "phoneme_sequence": "K L AO D OW P AH S"}],
+    "notes": "Claude's most capable model"
+  },
+  {
+    "canonical": "Claude Haiku",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Haiku", "Claude 3 Haiku"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/klɔːd ˈhaɪkuː/", "phoneme_sequence": "K L AO D HH AY K UW"}],
+    "notes": "Claude's fastest model"
+  },
+  {
+    "canonical": "o1",
+    "display": "o1",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["o-1", "OpenAI o1", "o1 model"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/oʊ wʌn/", "phoneme_sequence": "OW W AH N"}],
+    "notes": "OpenAI reasoning model"
+  },
+  {
+    "canonical": "o3",
+    "display": "o3",
+    "type": "product",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["o-3", "OpenAI o3", "o3 model"],
+    "contexts": ["tech", "asr_dev"],
+    "pronunciations": [{"ipa": "/oʊ θriː/", "phoneme_sequence": "OW TH R IY"}],
+    "notes": "OpenAI advanced reasoning model"
+  },
+  {
+    "canonical": "Google",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": [],
+    "contexts": ["tech", "investing"],
+    "pronunciations": [{"ipa": "/ˈɡuːɡəl/", "phoneme_sequence": "G UW G AH L"}],
+    "notes": "Technology company"
+  },
+  {
+    "canonical": "Microsoft",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["MSFT"],
+    "contexts": ["tech", "investing", "work"],
+    "pronunciations": [{"ipa": "/ˈmaɪkroʊsɒft/", "phoneme_sequence": "M AY K R OW S AO F T"}],
+    "notes": "Technology company"
+  },
+  {
+    "canonical": "NVIDIA",
+    "type": "org",
+    "tier": "A",
+    "boost_weight": 3.0,
+    "aliases": ["Nvidia", "nvidia", "NVDA"],
+    "contexts": ["tech", "investing", "asr_dev"],
+    "pronunciations": [{"ipa": "/ɛnˈvɪdiə/", "phoneme_sequence": "EH N V IH D IY AH"}],
+    "notes": "GPU/AI chip company"
+  }
+]

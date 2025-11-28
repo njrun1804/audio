@@ -1,0 +1,12 @@
+{
+  "name": "work",
+  "description": "Professional/Veeva work context profile",
+  "include_tiers": ["A", "C"],
+  "include_contexts": ["work", "veeva"],
+  "max_entries": 100,
+  "priority_boost": {
+    "work": 1.5,
+    "veeva": 1.5
+  },
+  "notes": "Use this profile for work meetings, Veeva-related discussions, and professional communications"
+}

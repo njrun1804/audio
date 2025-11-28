@@ -1,0 +1,204 @@
+[
+  {
+    "canonical": "Leica",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Leica Camera"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈlaɪkə/", "phoneme_sequence": "L AY K AH"}],
+    "notes": "German camera company - often mispronounced"
+  },
+  {
+    "canonical": "Leica Q3",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Q3", "Leica Q 3"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈlaɪkə kjuː θriː/", "phoneme_sequence": "L AY K AH K Y UW TH R IY"}],
+    "notes": "Leica compact full-frame camera"
+  },
+  {
+    "canonical": "Leica Q3 Monochrom",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Q3 Monochrom", "Q3M", "Leica Monochrom"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈlaɪkə kjuː θriː ˈmɒnəkroʊm/", "phoneme_sequence": "L AY K AH K Y UW TH R IY M AA N AH K R OW M"}],
+    "notes": "Black and white only Leica Q3"
+  },
+  {
+    "canonical": "Rolex",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": [],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/ˈroʊleks/", "phoneme_sequence": "R OW L EH K S"}],
+    "notes": "Luxury watch brand"
+  },
+  {
+    "canonical": "Submariner",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Rolex Submariner", "Sub"],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/ˈsʌbməˌriːnər/", "phoneme_sequence": "S AH B M AH R IY N ER"}],
+    "notes": "Rolex dive watch"
+  },
+  {
+    "canonical": "Daytona",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Rolex Daytona", "Cosmograph Daytona"],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/deɪˈtoʊnə/", "phoneme_sequence": "D EY T OW N AH"}],
+    "notes": "Rolex chronograph watch"
+  },
+  {
+    "canonical": "GMT-Master",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["GMT Master II", "Rolex GMT", "Pepsi"],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/dʒiː ɛm tiː ˈmæstər/", "phoneme_sequence": "JH IY EH M T IY M AE S T ER"}],
+    "notes": "Rolex dual timezone watch"
+  },
+  {
+    "canonical": "Omega",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Omega watches"],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/oʊˈmeɪɡə/", "phoneme_sequence": "OW M EY G AH"}],
+    "notes": "Swiss watch brand"
+  },
+  {
+    "canonical": "Speedmaster",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Omega Speedmaster", "Speedy", "Moonwatch"],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/ˈspiːdˌmæstər/", "phoneme_sequence": "S P IY D M AE S T ER"}],
+    "notes": "Omega chronograph - famous moon watch"
+  },
+  {
+    "canonical": "Peak Design",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["PD"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/piːk dɪˈzaɪn/", "phoneme_sequence": "P IY K D IH Z AY N"}],
+    "notes": "Camera/travel gear brand"
+  },
+  {
+    "canonical": "Everyday Backpack",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Peak Design Everyday", "EDB"],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/ˈevrideɪ ˈbækˌpæk/", "phoneme_sequence": "EH V R IY D EY B AE K P AE K"}],
+    "notes": "Peak Design backpack"
+  },
+  {
+    "canonical": "Sony Alpha",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Alpha", "Sony a7"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈsoʊni ˈælfə/", "phoneme_sequence": "S OW N IY AE L F AH"}],
+    "notes": "Sony camera line"
+  },
+  {
+    "canonical": "DJI",
+    "display": "DJI",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["D J I"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/diː dʒeɪ aɪ/", "phoneme_sequence": "D IY JH EY AY"}],
+    "notes": "Drone and gimbal company"
+  },
+  {
+    "canonical": "Mavic",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["DJI Mavic", "Mavic Pro", "Mavic Air"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈmævɪk/", "phoneme_sequence": "M AE V IH K"}],
+    "notes": "DJI consumer drone line"
+  },
+  {
+    "canonical": "Pocket 3",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["DJI Pocket 3", "Osmo Pocket 3"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈpɒkɪt θriː/", "phoneme_sequence": "P AA K IH T TH R IY"}],
+    "notes": "DJI gimbal camera"
+  },
+  {
+    "canonical": "Bellroy",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": [],
+    "contexts": ["gear"],
+    "pronunciations": [{"ipa": "/ˈbelrɔɪ/", "phoneme_sequence": "B EH L R OY"}],
+    "notes": "Wallet/accessories brand"
+  },
+  {
+    "canonical": "Anker",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": [],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈæŋkər/", "phoneme_sequence": "AE NG K ER"}],
+    "notes": "Charging/accessories brand"
+  },
+  {
+    "canonical": "MagSafe",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Mag Safe", "Apple MagSafe"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈmæɡseɪf/", "phoneme_sequence": "M AE G S EY F"}],
+    "notes": "Apple magnetic charging system"
+  },
+  {
+    "canonical": "CalDigit",
+    "type": "org",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["Cal Digit"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/ˈkæl ˈdɪdʒɪt/", "phoneme_sequence": "K AE L D IH JH IH T"}],
+    "notes": "Thunderbolt dock company"
+  },
+  {
+    "canonical": "TS4",
+    "display": "TS4",
+    "type": "product",
+    "tier": "H",
+    "boost_weight": 1.0,
+    "aliases": ["CalDigit TS4", "Thunderbolt Station 4"],
+    "contexts": ["gear", "tech"],
+    "pronunciations": [{"ipa": "/tiː ɛs fɔːr/", "phoneme_sequence": "T IY EH S F AO R"}],
+    "notes": "CalDigit Thunderbolt dock"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "name": "health",
+  "description": "Health, wellness, and recovery context profile",
+  "include_tiers": ["A", "E"],
+  "include_contexts": ["health"],
+  "max_entries": 80,
+  "priority_boost": {
+    "health": 1.5
+  },
+  "notes": "Use this profile for health tracking discussions, wearable data review, and wellness-related voice notes"
+}
