@@ -88,11 +88,16 @@ def download_lovecraft_dataset(
 
     Returns:
         List of paths to downloaded audio files
+
+    Raises:
+        ValueError: If no files were successfully downloaded
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     downloaded = []
+    failed = []
+
     for story in LOVECRAFT_STORIES:
         if stories and story.slug not in stories:
             continue
@@ -114,12 +119,19 @@ def download_lovecraft_dataset(
                 headers={"User-Agent": "ASR-Eval/1.0 (audio transcription tool)"}
             )
             with urllib.request.urlopen(req) as response:
+                content = response.read()
+                if not content:
+                    raise ValueError("Downloaded file is empty")
                 with open(output_path, "wb") as out_file:
-                    out_file.write(response.read())
+                    out_file.write(content)
             downloaded.append(output_path)
             print(f"  Saved: {output_path}")
         except Exception as e:
             print(f"  Error downloading {story.name}: {e}")
+            failed.append(story.name)
+
+    if failed and not downloaded:
+        raise ValueError(f"All downloads failed: {', '.join(failed)}")
 
     return downloaded
 
@@ -162,7 +174,11 @@ def get_lovecraft_reference(story_slug: str, cache_dir: Path | None = None) -> s
     if cache_dir:
         cache_path = Path(cache_dir) / f"{story_slug}.txt"
         if cache_path.exists():
-            return cache_path.read_text(encoding="utf-8")
+            try:
+                return cache_path.read_text(encoding="utf-8")
+            except (OSError, UnicodeDecodeError) as e:
+                print(f"Warning: Failed to read cache file {cache_path}: {e}")
+                # Continue to fetch from source
 
     # Get URL for this story
     text_url = REFERENCE_TEXT_URLS.get(story_slug)
@@ -180,18 +196,29 @@ def get_lovecraft_reference(story_slug: str, cache_dir: Path | None = None) -> s
         with urllib.request.urlopen(req) as response:
             raw_text = response.read().decode("utf-8")
 
+        if not raw_text:
+            raise ValueError("Fetched text is empty")
+
         # Clean based on source
         if "gutenberg.org" in text_url:
             text = _clean_gutenberg_text(raw_text)
         else:
             text = _clean_hplovecraft_text(raw_text)
 
+        if not text or len(text) < 100:
+            raise ValueError(
+                f"Cleaned text is too short ({len(text)} chars), extraction likely failed"
+            )
+
         # Cache if directory provided
         if cache_dir:
             cache_dir = Path(cache_dir)
             cache_dir.mkdir(parents=True, exist_ok=True)
             cache_path = cache_dir / f"{story_slug}.txt"
-            cache_path.write_text(text, encoding="utf-8")
+            try:
+                cache_path.write_text(text, encoding="utf-8")
+            except OSError as e:
+                print(f"Warning: Failed to cache text to {cache_path}: {e}")
 
         return text
 
@@ -200,14 +227,14 @@ def get_lovecraft_reference(story_slug: str, cache_dir: Path | None = None) -> s
         return ""
 
 
-def _clean_gutenberg_text(text: str) -> str:
+def _clean_gutenberg_text(text: str | None) -> str:
     """Clean Project Gutenberg plain text.
 
     Removes:
     - Header/footer boilerplate
     - Extra whitespace
     """
-    if not text:
+    if not text or text is None:
         return ""
 
     # Find start of actual text (after Gutenberg header)
@@ -255,7 +282,7 @@ def _clean_gutenberg_text(text: str) -> str:
     return text.strip()
 
 
-def _clean_hplovecraft_text(html: str) -> str:
+def _clean_hplovecraft_text(html: str | None) -> str:
     """Clean hplovecraft.com HTML page to extract story text.
 
     Removes:
@@ -263,7 +290,7 @@ def _clean_hplovecraft_text(html: str) -> str:
     - Navigation/header content
     - Extra whitespace
     """
-    if not html:
+    if not html or html is None:
         return ""
 
     # Extract text between story markers

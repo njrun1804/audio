@@ -36,7 +36,7 @@ class BenchmarkResult:
     @property
     def rtf(self) -> float:
         """Real-Time Factor (< 1.0 means faster than real-time)."""
-        if self.duration_seconds == 0:
+        if self.duration_seconds <= 0:
             return 0.0
         return self.transcription_time / self.duration_seconds
 
@@ -118,9 +118,18 @@ class BenchmarkSuite:
         }
 
     def to_json(self, path: Path) -> None:
-        """Save results to JSON file."""
-        with open(path, "w") as f:
-            json.dump(self.to_dict(), f, indent=2)
+        """Save results to JSON file with proper encoding and atomic write."""
+        # Atomic write: write to temp file first, then rename
+        temp_path = path.with_suffix(path.suffix + '.tmp')
+        try:
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(self.to_dict(), f, indent=2, ensure_ascii=False)
+            temp_path.replace(path)  # Atomic rename
+        except Exception:
+            # Clean up temp file on error
+            if temp_path.exists():
+                temp_path.unlink()
+            raise
 
     def summary(self) -> str:
         """Generate human-readable summary."""
@@ -169,7 +178,12 @@ def run_benchmark(
 
     # Get audio duration
     from asr.audio.ingest import get_audio_duration
-    duration = get_audio_duration(audio_path)
+    try:
+        duration = get_audio_duration(audio_path)
+        if duration <= 0:
+            raise ValueError(f"Invalid audio duration: {duration}")
+    except Exception as e:
+        raise ValueError(f"Failed to get audio duration for {audio_path}: {e}") from e
 
     # Transcribe
     start = time.time()

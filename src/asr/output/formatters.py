@@ -2,6 +2,7 @@
 
 import html
 import math
+import re
 
 from asr.models.transcript import Transcript
 
@@ -59,9 +60,21 @@ def format_vtt_time(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d}.{millis:03d}"
 
 
+def _escape_markdown(text: str) -> str:
+    """Escape markdown special characters to prevent formatting issues.
+
+    Escapes: \\ ` * _ { } [ ] ( ) # + - . ! |
+    """
+    # Characters that need escaping in markdown
+    special_chars = r'\\`*_{}[\]()#+\-.!|'
+    return re.sub(f'([{re.escape(special_chars)}])', r'\\\1', text)
+
+
 def to_json(transcript: Transcript, indent: int = 2) -> str:
-    """Export transcript as JSON."""
-    return transcript.model_dump_json(indent=indent)
+    """Export transcript as JSON with proper Unicode handling."""
+    # ensure_ascii=False to preserve Unicode characters (é, ñ, 中文, etc.)
+    # instead of escaping them as \uXXXX
+    return transcript.model_dump_json(indent=indent, ensure_ascii=False)
 
 
 def to_srt(transcript: Transcript) -> str:
@@ -128,7 +141,8 @@ def to_markdown(transcript: Transcript) -> str:
     # Header
     lines.append("# Transcript")
     lines.append("")
-    lines.append(f"**Source:** `{transcript.audio_path}`")
+    # Escape audio path since it goes in a code block (backticks in path would break it)
+    lines.append(f"**Source:** `{_escape_markdown(transcript.audio_path)}`")
     lines.append(f"**Duration:** {format_timestamp(transcript.duration_seconds)}")
     lines.append(f"**Model:** {transcript.config.model} ({transcript.config.quantization})")
     lines.append("")
@@ -143,8 +157,9 @@ def to_markdown(transcript: Transcript) -> str:
             continue
 
         ts = format_timestamp(seg.start)
-        speaker_prefix = f"**{seg.speaker}:** " if seg.speaker else ""
-        lines.append(f"[{ts}] {speaker_prefix}{text}")
+        # Escape speaker name and text to prevent markdown formatting issues
+        speaker_prefix = f"**{_escape_markdown(seg.speaker)}:** " if seg.speaker else ""
+        lines.append(f"[{ts}] {speaker_prefix}{_escape_markdown(text)}")
         lines.append("")
 
     # Metadata if present
@@ -153,27 +168,34 @@ def to_markdown(transcript: Transcript) -> str:
         lines.append("")
         lines.append("## Summary")
         lines.append("")
-        lines.append(transcript.metadata.summary)
+        lines.append(_escape_markdown(transcript.metadata.summary))
         lines.append("")
 
     if transcript.metadata.tags:
         lines.append("## Tags")
         lines.append("")
-        lines.append(", ".join(f"`{tag}`" for tag in transcript.metadata.tags))
-        lines.append("")
+        # Tags in backticks need escaping - filter out None/empty tags
+        valid_tags = [tag for tag in transcript.metadata.tags if tag and str(tag).strip()]
+        if valid_tags:
+            lines.append(", ".join(f"`{_escape_markdown(str(tag))}`" for tag in valid_tags))
+            lines.append("")
 
     if transcript.metadata.tasks:
         lines.append("## Tasks")
         lines.append("")
+        # Filter out None/empty tasks
         for task in transcript.metadata.tasks:
-            lines.append(f"- [ ] {task}")
+            if task and str(task).strip():
+                lines.append(f"- [ ] {_escape_markdown(str(task))}")
         lines.append("")
 
     if transcript.metadata.decisions:
         lines.append("## Decisions")
         lines.append("")
+        # Filter out None/empty decisions
         for decision in transcript.metadata.decisions:
-            lines.append(f"- {decision}")
+            if decision and str(decision).strip():
+                lines.append(f"- {_escape_markdown(str(decision))}")
         lines.append("")
 
     return "\n".join(lines)
@@ -192,6 +214,12 @@ def to_text(transcript: Transcript) -> str:
 
 def format_transcript(transcript: Transcript, output_format: str) -> str:
     """Format transcript based on file extension or format name."""
+    # Validate inputs
+    if transcript is None:
+        raise ValueError("Transcript cannot be None")
+    if not output_format or not output_format.strip():
+        raise ValueError("Output format cannot be empty")
+
     formatters = {
         "json": to_json,
         "srt": to_srt,

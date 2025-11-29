@@ -61,6 +61,9 @@ class CandidateMatcher:
         Args:
             entries: List of dictionary entries to match against.
         """
+        # Validate entries input
+        if entries is None:
+            entries = []
         self.entries = entries
         self._canonical_lower: dict[str, EntryWithRelations] = {}
         self._alias_lower: dict[str, EntryWithRelations] = {}
@@ -79,9 +82,16 @@ class CandidateMatcher:
         - metaphone_alternate -> list[(form, entry)] (alternate Double Metaphone code)
         """
         for entry in self.entries:
+            # Skip entries with invalid/missing canonical forms
+            if not entry.canonical or not entry.canonical.strip():
+                continue
+
             # Index canonical form
             canonical = entry.canonical
             canonical_lower = canonical.lower()
+
+            # Warn about duplicate canonical entries (last one wins)
+            # In production, might want to log or raise an error
             self._canonical_lower[canonical_lower] = entry
 
             # Add to phonetic indexes
@@ -89,8 +99,16 @@ class CandidateMatcher:
 
             # Index aliases
             for alias in entry.aliases:
+                # Skip invalid aliases
+                if not alias or not hasattr(alias, 'alias'):
+                    continue
+                if not alias.alias or not alias.alias.strip():
+                    continue
+
                 alias_text = alias.alias
                 alias_lower = alias_text.lower()
+
+                # Warn about duplicate alias entries (last one wins)
                 self._alias_lower[alias_lower] = entry
 
                 # Add aliases to phonetic indexes too
@@ -148,6 +166,12 @@ class CandidateMatcher:
         """
         if not text or not text.strip():
             return []
+
+        # Validate max_candidates to prevent resource exhaustion
+        if max_candidates <= 0:
+            return []
+        # Cap at reasonable limit to prevent memory issues
+        max_candidates = min(max_candidates, 100)
 
         text = text.strip()
         text_lower = text.lower()
@@ -225,6 +249,10 @@ class CandidateMatcher:
         matches: list[tuple[str, EntryWithRelations, float]] = []
         seen: set[tuple[str, str]] = set()  # (form, entry_id) to avoid duplicates
 
+        # Handle empty string edge case
+        if not text or not text.strip():
+            return []
+
         # Get metaphone for each word in text
         words = text.split()
         for word in words:
@@ -237,6 +265,10 @@ class CandidateMatcher:
             except Exception:
                 continue
 
+            # Skip if metaphone returned empty strings (can happen with special input)
+            if not input_primary and not input_alternate:
+                continue
+
             # Match input primary against indexed primary (highest confidence: 0.8)
             if input_primary and input_primary in self._metaphone_primary:
                 for form, entry in self._metaphone_primary[input_primary]:
@@ -244,7 +276,9 @@ class CandidateMatcher:
                     if key in seen:
                         continue
                     seen.add(key)
-                    # Calculate similarity using rapidfuzz
+                    # Calculate similarity using rapidfuzz with empty string protection
+                    if not text or not form:
+                        continue
                     similarity = fuzz.ratio(text.lower(), form.lower()) / 100.0
                     confidence = 0.8 * similarity
                     if confidence > 0.35:
@@ -257,6 +291,8 @@ class CandidateMatcher:
                     if key in seen:
                         continue
                     seen.add(key)
+                    if not text or not form:
+                        continue
                     similarity = fuzz.ratio(text.lower(), form.lower()) / 100.0
                     confidence = 0.7 * similarity
                     if confidence > 0.35:
@@ -269,6 +305,8 @@ class CandidateMatcher:
                     if key in seen:
                         continue
                     seen.add(key)
+                    if not text or not form:
+                        continue
                     similarity = fuzz.ratio(text.lower(), form.lower()) / 100.0
                     confidence = 0.7 * similarity
                     if confidence > 0.35:
@@ -281,6 +319,8 @@ class CandidateMatcher:
                     if key in seen:
                         continue
                     seen.add(key)
+                    if not text or not form:
+                        continue
                     similarity = fuzz.ratio(text.lower(), form.lower()) / 100.0
                     confidence = 0.6 * similarity
                     if confidence > 0.3:
@@ -305,13 +345,28 @@ class CandidateMatcher:
             List of (matched_form, entry, confidence) tuples.
         """
         matches: list[tuple[str, EntryWithRelations, float]] = []
+
+        # Handle empty string edge case
+        if not text or not text.strip():
+            return []
+
         text_lower = text.lower()
+
+        # Validate max_distance to prevent excessive computation
+        if max_distance < 0:
+            max_distance = 0
+        # Cap at reasonable limit to prevent performance issues
+        max_distance = min(max_distance, 10)
 
         # Check all canonical forms using rapidfuzz Levenshtein
         for canonical_lower, entry in self._canonical_lower.items():
+            # Skip empty canonical forms
+            if not canonical_lower:
+                continue
             distance = Levenshtein.distance(text_lower, canonical_lower)
             if distance <= max_distance and distance > 0:  # Skip exact matches (handled elsewhere)
                 max_len = max(len(text), len(canonical_lower))
+                # Defensive check: max_len should never be 0 at this point, but guard anyway
                 if max_len > 0:
                     confidence = 0.6 * (1 - distance / max_len)
                     if confidence > 0.3:
@@ -319,9 +374,13 @@ class CandidateMatcher:
 
         # Check all alias forms using rapidfuzz Levenshtein
         for alias_lower, entry in self._alias_lower.items():
+            # Skip empty alias forms
+            if not alias_lower:
+                continue
             distance = Levenshtein.distance(text_lower, alias_lower)
             if distance <= max_distance and distance > 0:
                 max_len = max(len(text), len(alias_lower))
+                # Defensive check: max_len should never be 0 at this point, but guard anyway
                 if max_len > 0:
                     confidence = 0.55 * (1 - distance / max_len)  # Slightly lower for aliases
                     if confidence > 0.3:
@@ -347,6 +406,12 @@ class CandidateMatcher:
         Returns:
             Best matching entry if confidence meets threshold, None otherwise.
         """
+        # Validate threshold to prevent logic errors
+        if threshold < 0.0:
+            threshold = 0.0
+        elif threshold > 1.0:
+            threshold = 1.0
+
         candidates = self.find_candidates(text, max_candidates=1)
         if candidates and candidates[0].confidence >= threshold:
             return candidates[0].entry
@@ -459,6 +524,10 @@ class CandidateMatcher:
         """
         matches: list[tuple[str, int, int, list[MatchCandidate]]] = []
 
+        # Handle empty string edge case
+        if not text:
+            return []
+
         # Find all word boundaries
         word_pattern = r"\b([A-Za-z]+)\b"
 
@@ -475,6 +544,10 @@ class CandidateMatcher:
             try:
                 word_primary, word_alternate = doublemetaphone(word)
             except Exception:
+                continue
+
+            # Skip if metaphone returned empty strings
+            if not word_primary and not word_alternate:
                 continue
 
             has_phonetic_match = (

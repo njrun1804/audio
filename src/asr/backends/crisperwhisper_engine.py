@@ -171,10 +171,20 @@ class CrisperWhisperEngine(BaseEngine):
 
         # Use lock to serialize Metal GPU operations
         # Pass numpy array directly to avoid disk I/O (mlx_whisper supports np.ndarray)
-        with _MLX_LOCK:
-            result = mlx_whisper.transcribe(audio.samples, **kwargs)
+        try:
+            with _MLX_LOCK:
+                result = mlx_whisper.transcribe(audio.samples, **kwargs)
+        finally:
+            # Clean up MLX memory cache to prevent memory leaks
+            try:
+                import mlx.core as mx
+                mx.metal.clear_cache()
+            except Exception as e:
+                logger.debug(f"MLX cache cleanup failed (non-critical): {e}")
 
-        return self._parse_result(result, audio.start_time, word_timestamps)
+        # Generate chunk_id from start_time for debugging (stable hash within int range)
+        chunk_id = hash(audio.start_time) % (2**31)
+        return self._parse_result(result, audio.start_time, word_timestamps, chunk_id=chunk_id)
 
     def transcribe_file(
         self,
@@ -209,8 +219,16 @@ class CrisperWhisperEngine(BaseEngine):
             initial_prompt=initial_prompt,
         )
 
-        with _MLX_LOCK:
-            result = mlx_whisper.transcribe(str(audio_path), **kwargs)
+        try:
+            with _MLX_LOCK:
+                result = mlx_whisper.transcribe(str(audio_path), **kwargs)
+        finally:
+            # Clean up MLX memory cache to prevent memory leaks
+            try:
+                import mlx.core as mx
+                mx.metal.clear_cache()
+            except Exception as e:
+                logger.debug(f"MLX cache cleanup failed (non-critical): {e}")
 
         return self._parse_result(result, 0.0, word_timestamps)
 
@@ -219,8 +237,16 @@ class CrisperWhisperEngine(BaseEngine):
         result: dict,
         start_offset: float,
         word_timestamps: bool,
+        chunk_id: int | None = None,
     ) -> list[Segment]:
-        """Parse mlx_whisper result into Segment models."""
+        """Parse mlx_whisper result into Segment models.
+
+        Args:
+            result: mlx_whisper transcription result
+            start_offset: Time offset to add to all timestamps
+            word_timestamps: Whether word-level timestamps are included
+            chunk_id: Optional chunk ID for debugging VAD pathology
+        """
         segments = []
 
         for i, seg in enumerate(result.get("segments", [])):
@@ -230,36 +256,81 @@ class CrisperWhisperEngine(BaseEngine):
                 for word_data in seg["words"]:
                     if not word_data:
                         continue
-                    # Safely extract word data with type coercion
-                    raw_word = word_data.get("word")
-                    word_text = str(raw_word) if raw_word is not None else ""
-                    word_start = float(word_data.get("start", 0))
-                    word_end = float(word_data.get("end", 0))
-                    word_prob = float(word_data.get("probability", 0.9))
-                    words.append(WordTiming(
-                        word=word_text,
-                        start=start_offset + word_start,
-                        end=start_offset + word_end,
-                        confidence=min(1.0, max(0.0, word_prob)),
-                    ))
+                    try:
+                        # Safely extract word data with type coercion and validation
+                        raw_word = word_data.get("word")
+                        word_text = str(raw_word) if raw_word is not None else ""
+
+                        # Validate and convert timing values
+                        raw_start = word_data.get("start", 0)
+                        raw_end = word_data.get("end", 0)
+                        raw_prob = word_data.get("probability", 0.9)
+
+                        if raw_start is None or raw_end is None:
+                            logger.debug(f"Skipping word with missing timing: {word_text}")
+                            continue
+
+                        word_start = float(raw_start)
+                        word_end = float(raw_end)
+                        word_prob = float(raw_prob) if raw_prob is not None else 0.9
+
+                        # Validate timing makes sense
+                        if word_start < 0 or word_end < 0 or word_end < word_start:
+                            logger.debug(
+                                f"Skipping word with invalid timing: {word_text} "
+                                f"({word_start}-{word_end})"
+                            )
+                            continue
+
+                        words.append(WordTiming(
+                            word=word_text,
+                            start=start_offset + word_start,
+                            end=start_offset + word_end,
+                            confidence=min(1.0, max(0.0, word_prob)),
+                        ))
+                    except (ValueError, TypeError) as e:
+                        # Skip malformed word data but don't fail the entire transcription
+                        logger.debug(f"Skipping malformed word data: {e}")
 
             text = str(seg.get("text", "") or "").strip()
 
             # Safe extraction with type coercion for segment timing
-            seg_start = float(seg.get("start", 0) or 0)
-            seg_end = float(seg.get("end", 0) or 0)
+            try:
+                raw_seg_start = seg.get("start", 0)
+                raw_seg_end = seg.get("end", 0)
+                seg_start = float(raw_seg_start if raw_seg_start is not None else 0)
+                seg_end = float(raw_seg_end if raw_seg_end is not None else 0)
+
+                # Validate segment timing makes sense
+                if seg_start < 0:
+                    logger.debug(f"Invalid segment start time {seg_start}, using 0")
+                    seg_start = 0.0
+                if seg_end < seg_start:
+                    logger.debug(
+                        f"Invalid segment end time {seg_end} < start {seg_start}, using start"
+                    )
+                    seg_end = seg_start
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Failed to parse segment timing, using defaults: {e}")
+                seg_start = 0.0
+                seg_end = 0.0
 
             # Safe confidence calculation from avg_logprob
             # avg_logprob is log probability, so exp() converts to probability [0, 1]
             avg_logprob = seg.get("avg_logprob")
             if avg_logprob is None or not isinstance(avg_logprob, (int, float)):
                 avg_logprob = -0.5
-            # Clamp logprob to reasonable range to avoid overflow
-            clamped_logprob = max(-10.0, min(0.0, float(avg_logprob)))
-            confidence = min(1.0, max(0.0, math.exp(clamped_logprob)))
+            try:
+                # Clamp logprob to reasonable range to avoid overflow
+                clamped_logprob = max(-10.0, min(0.0, float(avg_logprob)))
+                confidence = min(1.0, max(0.0, math.exp(clamped_logprob)))
+            except (ValueError, OverflowError) as e:
+                logger.debug(f"Failed to calculate confidence from logprob, using default: {e}")
+                confidence = 0.5
 
             segments.append(Segment(
                 id=i,
+                chunk_id=chunk_id,
                 start=start_offset + seg_start,
                 end=start_offset + seg_end,
                 speaker=None,
@@ -291,9 +362,9 @@ class CrisperWhisperEngine(BaseEngine):
                         "probability": word.confidence,
                     })
 
-        if all_words:
+        if all_words and segments:
             # Calculate duration from segments
-            duration = segments[-1].end - start_offset if segments else 0
+            duration = segments[-1].end - start_offset
             # Use hash of start_time to create stable chunk_id within int range
             chunk_id = hash(start_offset) % (2**31)
             logger.log_chunk_transcribed(
@@ -316,16 +387,29 @@ def get_crisperwhisper_engine(
     """Get a CrisperWhisper engine instance (singleton, thread-safe).
 
     Args:
-        model_path: Optional override for model path
+        model_path: Optional override for model path (only used on first call)
         warm_up: Pre-compile Metal kernels (only affects first call)
 
     Returns:
         CrisperWhisperEngine instance
+
+    Note:
+        The singleton pattern means model_path is only used on the first call.
+        Subsequent calls with different model_path will return the existing engine.
+        This is by design to avoid reloading the model on every call.
     """
     global _engine
 
     # Fast path: return cached engine if available
     if _engine is not None:
+        # Warn if model_path is specified but differs from cached engine
+        if model_path is not None:
+            requested_path = Path(model_path)
+            if requested_path != _engine._model_path:
+                logger.warning(
+                    f"Ignoring model_path {requested_path} - engine already initialized "
+                    f"with {_engine._model_path}. Singleton pattern prevents reloading."
+                )
         return _engine
 
     # Slow path: acquire lock and create engine

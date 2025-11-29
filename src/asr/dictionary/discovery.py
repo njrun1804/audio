@@ -67,6 +67,9 @@ COMMON_WORDS = frozenset([
 # Minimum word length for proper nouns
 MIN_WORD_LENGTH = 4
 
+# Maximum file size for pending nouns JSON (10MB)
+MAX_PENDING_FILE_SIZE = 10 * 1024 * 1024
+
 # Map NER entity types to dictionary entry types
 NER_TYPE_MAP = {
     "person": "person",
@@ -375,12 +378,25 @@ def add_discovered_to_pending(
     PENDING_FILE = Path.home() / ".asr" / "dictionaries" / "pending_nouns.json"
 
     import json
+    import os
     pending: dict = {}
     if PENDING_FILE.exists():
         try:
-            pending = json.loads(PENDING_FILE.read_text())
-        except (json.JSONDecodeError, ValueError):
+            # SECURITY: Check file size before reading to prevent memory exhaustion
+            file_size = os.path.getsize(PENDING_FILE)
+            if file_size > MAX_PENDING_FILE_SIZE:
+                logger.error(
+                    f"Pending file too large: {file_size} bytes (max {MAX_PENDING_FILE_SIZE})"
+                )
+                return 0, 0
+
+            pending = json.loads(PENDING_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.warning(f"Corrupted pending file, starting fresh: {e}")
             pending = {}
+        except OSError as e:
+            logger.error(f"Failed to read pending file: {e}")
+            return 0, 0
 
     added = 0
     auto_approved = 0
@@ -429,9 +445,13 @@ def add_discovered_to_pending(
             added += 1
 
     # Save pending
-    PENDING_FILE.parent.mkdir(parents=True, exist_ok=True)
-    PENDING_FILE.write_text(json.dumps(pending, indent=2))
-    PENDING_FILE.chmod(0o600)
+    try:
+        PENDING_FILE.parent.mkdir(parents=True, exist_ok=True)
+        PENDING_FILE.write_text(json.dumps(pending, indent=2), encoding="utf-8")
+        PENDING_FILE.chmod(0o600)
+    except OSError as e:
+        logger.error(f"Failed to save pending nouns: {e}")
+        return 0, 0
 
     return added, auto_approved
 
@@ -441,16 +461,29 @@ def get_pending_nouns() -> list[dict]:
     PENDING_FILE = Path.home() / ".asr" / "dictionaries" / "pending_nouns.json"
 
     import json
+    import os
     if not PENDING_FILE.exists():
         return []
 
     try:
-        pending = json.loads(PENDING_FILE.read_text())
+        # SECURITY: Check file size before reading to prevent memory exhaustion
+        file_size = os.path.getsize(PENDING_FILE)
+        if file_size > MAX_PENDING_FILE_SIZE:
+            logger.error(
+                f"Pending file too large: {file_size} bytes (max {MAX_PENDING_FILE_SIZE})"
+            )
+            return []
+
+        pending = json.loads(PENDING_FILE.read_text(encoding="utf-8"))
         return [
             {**info, "key": key}
             for key, info in pending.items()
         ]
-    except (json.JSONDecodeError, ValueError):
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning(f"Corrupted pending file: {e}")
+        return []
+    except OSError as e:
+        logger.error(f"Failed to read pending file: {e}")
         return []
 
 
@@ -470,12 +503,25 @@ def approve_pending_noun(text: str, context: str | None = None) -> bool:
     PENDING_FILE = Path.home() / ".asr" / "dictionaries" / "pending_nouns.json"
 
     import json
+    import os
     if not PENDING_FILE.exists():
         return False
 
     try:
-        pending = json.loads(PENDING_FILE.read_text())
-    except (json.JSONDecodeError, ValueError):
+        # SECURITY: Check file size before reading to prevent memory exhaustion
+        file_size = os.path.getsize(PENDING_FILE)
+        if file_size > MAX_PENDING_FILE_SIZE:
+            logger.error(
+                f"Pending file too large: {file_size} bytes (max {MAX_PENDING_FILE_SIZE})"
+            )
+            return False
+
+        pending = json.loads(PENDING_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning(f"Corrupted pending file: {e}")
+        return False
+    except OSError as e:
+        logger.error(f"Failed to read pending file: {e}")
         return False
 
     key = text.lower()
@@ -496,8 +542,12 @@ def approve_pending_noun(text: str, context: str | None = None) -> bool:
     try:
         create_entry(entry)
         del pending[key]
-        PENDING_FILE.write_text(json.dumps(pending, indent=2))
+        PENDING_FILE.write_text(json.dumps(pending, indent=2), encoding="utf-8")
+        PENDING_FILE.chmod(0o600)
         return True
+    except OSError as e:
+        logger.error(f"Failed to save pending file after approval: {e}")
+        return False
     except Exception as e:
         logger.error(f"Failed to approve {text}: {e}")
         return False
@@ -508,18 +558,36 @@ def reject_pending_noun(text: str) -> bool:
     PENDING_FILE = Path.home() / ".asr" / "dictionaries" / "pending_nouns.json"
 
     import json
+    import os
     if not PENDING_FILE.exists():
         return False
 
     try:
-        pending = json.loads(PENDING_FILE.read_text())
-    except (json.JSONDecodeError, ValueError):
+        # SECURITY: Check file size before reading to prevent memory exhaustion
+        file_size = os.path.getsize(PENDING_FILE)
+        if file_size > MAX_PENDING_FILE_SIZE:
+            logger.error(
+                f"Pending file too large: {file_size} bytes (max {MAX_PENDING_FILE_SIZE})"
+            )
+            return False
+
+        pending = json.loads(PENDING_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning(f"Corrupted pending file: {e}")
+        return False
+    except OSError as e:
+        logger.error(f"Failed to read pending file: {e}")
         return False
 
     key = text.lower()
     if key not in pending:
         return False
 
-    del pending[key]
-    PENDING_FILE.write_text(json.dumps(pending, indent=2))
-    return True
+    try:
+        del pending[key]
+        PENDING_FILE.write_text(json.dumps(pending, indent=2), encoding="utf-8")
+        PENDING_FILE.chmod(0o600)
+        return True
+    except OSError as e:
+        logger.error(f"Failed to save pending file after rejection: {e}")
+        return False

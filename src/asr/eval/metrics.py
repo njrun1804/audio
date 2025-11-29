@@ -63,9 +63,11 @@ def normalize_text(text: str, keep_case: bool = False) -> str:
     text = re.sub(r"[^\w\s']", " ", text)
 
     # Remove standalone apostrophes (keep contractions like "don't")
-    text = re.sub(r"\s'\s", " ", text)
-    text = re.sub(r"^'\s", " ", text)
-    text = re.sub(r"\s'$", " ", text)
+    # Handle leading/trailing apostrophes first
+    text = re.sub(r"^'+\s*", "", text)  # Leading apostrophes
+    text = re.sub(r"\s*'+$", "", text)  # Trailing apostrophes
+    text = re.sub(r"\s'+\s", " ", text)  # Standalone apostrophes between words
+    text = re.sub(r"\s+'\s+", " ", text)  # Multiple spaces around apostrophes
 
     # Collapse whitespace
     text = re.sub(r"\s+", " ", text)
@@ -88,9 +90,22 @@ def _levenshtein_distance(ref: list[str], hyp: list[str]) -> tuple[int, int, int
 
     Returns:
         Tuple of (distance, substitutions, insertions, deletions)
+
+    Raises:
+        ValueError: If input sequences are too long (potential memory issue)
     """
     n = len(ref)
     m = len(hyp)
+
+    # Memory safety check: prevent O(n*m) memory explosion
+    # At ~1MB per 10K x 10K matrix, limit to reasonable size
+    MAX_SEQUENCE_LENGTH = 50000  # ~10GB memory at worst case
+    if n > MAX_SEQUENCE_LENGTH or m > MAX_SEQUENCE_LENGTH:
+        raise ValueError(
+            f"Input sequences too long for WER calculation "
+            f"(ref: {n}, hyp: {m}, max: {MAX_SEQUENCE_LENGTH}). "
+            f"Consider splitting into smaller chunks."
+        )
 
     # DP table: dp[i][j] = (distance, subs, ins, dels)
     dp = [[(0, 0, 0, 0) for _ in range(m + 1)] for _ in range(n + 1)]
@@ -158,6 +173,7 @@ def calculate_wer(reference: str, hypothesis: str, normalize: bool = True) -> WE
     # Handle edge cases
     if len(ref_words) == 0:
         if len(hyp_words) == 0:
+            # Both empty - perfect match
             return WERResult(
                 wer=0.0,
                 substitutions=0,
@@ -167,14 +183,27 @@ def calculate_wer(reference: str, hypothesis: str, normalize: bool = True) -> WE
                 hypothesis_words=0,
             )
         else:
+            # Empty reference, non-empty hypothesis - undefined WER
+            # Return inf to indicate invalid comparison (division by zero)
             return WERResult(
-                wer=float('inf'),  # Can't calculate WER with empty reference
+                wer=float('inf'),
                 substitutions=0,
                 insertions=len(hyp_words),
                 deletions=0,
                 reference_words=0,
                 hypothesis_words=len(hyp_words),
             )
+
+    # Empty hypothesis with non-empty reference - all deletions
+    if len(hyp_words) == 0:
+        return WERResult(
+            wer=1.0,  # 100% error rate (all words deleted)
+            substitutions=0,
+            insertions=0,
+            deletions=len(ref_words),
+            reference_words=len(ref_words),
+            hypothesis_words=0,
+        )
 
     # Calculate Levenshtein distance
     distance, subs, ins, dels = _levenshtein_distance(ref_words, hyp_words)
@@ -204,7 +233,7 @@ def calculate_cer(reference: str, hypothesis: str, normalize: bool = True) -> fl
         normalize: Whether to normalize texts before comparison
 
     Returns:
-        CER as a float (0.0 = perfect)
+        CER as a float (0.0 = perfect, inf = undefined for empty reference)
     """
     if normalize:
         reference = normalize_text(reference)
@@ -213,8 +242,14 @@ def calculate_cer(reference: str, hypothesis: str, normalize: bool = True) -> fl
     ref_chars = list(reference.replace(" ", ""))
     hyp_chars = list(hypothesis.replace(" ", ""))
 
+    # Handle edge cases
     if len(ref_chars) == 0:
+        # Empty reference - return 0.0 if hypothesis also empty, else inf
         return 0.0 if len(hyp_chars) == 0 else float('inf')
+
+    # Empty hypothesis with non-empty reference - 100% error
+    if len(hyp_chars) == 0:
+        return 1.0
 
     distance, _, _, _ = _levenshtein_distance(ref_chars, hyp_chars)
     return distance / len(ref_chars)

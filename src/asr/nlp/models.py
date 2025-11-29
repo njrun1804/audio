@@ -24,7 +24,9 @@ class SegmentCorrection(BaseModel):
 class Pass1Result(BaseModel):
     """Result from Pass 1 (correction)."""
 
-    corrected_segments: list[SegmentCorrection] = Field(default_factory=list, description="List of corrected segments")
+    corrected_segments: list[SegmentCorrection] = Field(
+        default_factory=list, description="List of corrected segments"
+    )
 
 
 class ConsistencyFix(BaseModel):
@@ -39,9 +41,13 @@ class ConsistencyFix(BaseModel):
 class Pass2Result(BaseModel):
     """Result from Pass 2 (consistency)."""
 
-    consistency_fixes: list[ConsistencyFix] = Field(default_factory=list, description="List of consistency fixes applied")
-    entity_map: dict[str, list[str]] = Field(default_factory=dict, description="Map of canonical entities to variants found")
-    flags: list[dict] = Field(default_factory=list, description="Quality flags for manual review")
+    consistency_fixes: list[ConsistencyFix] = Field(
+        default_factory=list, description="List of consistency fixes applied"
+    )
+    entity_map: dict[str, list[str]] = Field(
+        default_factory=dict, description="Map of canonical entities to variants"
+    )
+    flags: list[dict] = Field(default_factory=list, description="Quality flags")
 
 
 class KickerFix(BaseModel):
@@ -51,14 +57,16 @@ class KickerFix(BaseModel):
     original: str = Field(..., description="Original text before fix")
     corrected: str = Field(..., description="Corrected text")
     reason: str = Field(..., description="Reason for the fix")
-    confidence: Literal["low", "medium", "high"] = Field(default="high", description="Confidence level of the fix")
+    confidence: Literal["low", "medium", "high"] = Field(default="high", description="Confidence")
 
 
 class KickerResult(BaseModel):
     """Result from the final kicker pass (Sonnet/Opus with thinking)."""
 
-    final_fixes: list[KickerFix] = Field(default_factory=list, description="List of final fixes from kicker pass")
-    quality_assessment: str = Field(default="", description="Overall quality assessment of the transcript")
+    final_fixes: list[KickerFix] = Field(
+        default_factory=list, description="List of final fixes from kicker pass"
+    )
+    quality_assessment: str = Field(default="", description="Overall quality assessment")
 
 
 class CorrectionConfig(BaseModel):

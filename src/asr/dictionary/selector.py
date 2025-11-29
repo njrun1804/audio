@@ -235,6 +235,11 @@ class BiasListSelector:
         # Get entries from SQLite database
         all_entries = get_all_entries()
 
+        # Handle empty database
+        if not all_entries:
+            logger.warning("No entries found in dictionary database")
+            return []
+
         # Score and filter entries
         scored: list[tuple[float, EntryWithRelations]] = []
 
@@ -247,12 +252,15 @@ class BiasListSelector:
                 if entry_tier_idx > min_tier_idx:
                     continue
 
-            # Filter by include_contexts
+            # Filter by include_contexts (tier A always passes)
             if include_contexts:
-                if not any(entry.has_context(ctx) for ctx in include_contexts):
+                has_required = any(
+                    entry.has_context(ctx) for ctx in include_contexts
+                ) or entry.tier == "A"
+                if not has_required:
                     continue
 
-            # Filter by exclude_contexts
+            # Filter by exclude_contexts (tier A can still be excluded)
             if exclude_contexts:
                 if any(entry.has_context(ctx) for ctx in exclude_contexts):
                     continue
@@ -313,6 +321,11 @@ class BiasListSelector:
         """
         # Get entries from SQLite database
         all_entries = get_all_entries()
+
+        # Handle empty database
+        if not all_entries:
+            logger.warning("No entries found in dictionary database")
+            return []
 
         scored: list[tuple[float, EntryWithRelations]] = []
 
@@ -375,11 +388,12 @@ class BiasListSelector:
         Returns:
             Relevance score (higher is better)
         """
-        # Tier weight
-        tier_weight = TIER_WEIGHTS.get(entry.tier, 0.3)
+        # Tier weight (fallback to lowest tier weight if tier is invalid)
+        tier_weight = TIER_WEIGHTS.get(entry.tier, 0.4)
 
         # Boost weight (already 0.0-3.0)
-        boost = entry.boost_weight
+        # Special case: if boost is 0.0, use small non-zero value to preserve tier ordering
+        boost = max(entry.boost_weight, 0.01)
 
         # Context relevance
         context_weight = 1.0
@@ -394,8 +408,16 @@ class BiasListSelector:
         # Recency decay: binary (recent = 60 days, otherwise old)
         recency_weight = 0.5  # Default for never seen or old
         if entry.last_seen_at:
+            # Protect against future timestamps (clock skew or data corruption)
             days_since = (datetime.now() - entry.last_seen_at).days
-            recency_weight = 1.0 if days_since <= 60 else 0.5
+            if days_since < 0:
+                logger.warning(
+                    f"Entry '{entry.canonical}' has future last_seen_at: "
+                    f"{entry.last_seen_at}"
+                )
+                recency_weight = 0.5  # Treat as old/unseen
+            else:
+                recency_weight = 1.0 if days_since <= 60 else 0.5
 
         return tier_weight * boost * context_weight * recency_weight
 

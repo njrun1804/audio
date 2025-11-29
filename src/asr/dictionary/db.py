@@ -64,8 +64,10 @@ def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(str(DB_PATH), timeout=30.0)
     conn.row_factory = sqlite3.Row
 
-    # Enable foreign keys and WAL mode
+    # Enable foreign keys
     conn.execute("PRAGMA foreign_keys = ON")
+    # WAL mode is persistent, only needs to be set once during init
+    # But checking/setting it is idempotent and fast, so we do it for safety
     conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA synchronous = NORMAL")  # Good balance of safety/performance
     conn.execute("PRAGMA cache_size = -64000")  # 64MB cache
@@ -478,6 +480,10 @@ def search_entries(
     results: list[SearchResult] = []
 
     with db_connection() as conn:
+        # Validate limit to prevent SQL injection
+        if not isinstance(limit, int) or limit < 1:
+            raise ValueError(f"Invalid limit value: {limit}")
+
         # Build query with optional filters
         where_clauses = ["e.language = ?"]
         params: list = [language]
@@ -493,7 +499,9 @@ def search_entries(
         where_sql = " AND ".join(where_clauses)
 
         # Search canonical names
-        params_canonical = params + [query_pattern]
+        # Build query with string formatting for WHERE clause only (safe - trusted sources)
+        # All user input goes through parameterized queries
+        params_canonical = params + [query_pattern, query_lower, f"{query_lower}%", limit]
         cursor = conn.execute(
             f"""
             SELECT id, canonical, display, type, tier, boost_weight,
@@ -511,7 +519,7 @@ def search_entries(
                 occurrence_count DESC
             LIMIT ?
             """,
-            params_canonical + [query_lower, f"{query_lower}%", limit],
+            params_canonical,
         )
 
         seen_ids = set()
@@ -538,7 +546,7 @@ def search_entries(
             seen_ids.add(entry.id)
 
         # Search aliases
-        params_alias = params + [query_pattern]
+        params_alias = params + [query_pattern, query_lower, f"{query_lower}%", limit]
         cursor = conn.execute(
             f"""
             SELECT e.id, e.canonical, e.display, e.type, e.tier, e.boost_weight,
@@ -556,7 +564,7 @@ def search_entries(
                 e.tier ASC
             LIMIT ?
             """,
-            params_alias + [query_lower, f"{query_lower}%", limit],
+            params_alias,
         )
 
         for row in cursor.fetchall():
@@ -732,7 +740,11 @@ def get_entries_by_context(
         """
 
         if limit:
-            query += f" LIMIT {limit}"
+            # Validate limit is a positive integer to prevent SQL injection
+            if not isinstance(limit, int) or limit < 1:
+                raise ValueError(f"Invalid limit value: {limit}")
+            query += " LIMIT ?"
+            params.append(limit)
 
         cursor = conn.execute(query, params)
 
@@ -944,6 +956,9 @@ def get_entries_by_tier(
         params: list = [tier, language]
 
         if limit:
+            # Validate limit is a positive integer to prevent SQL injection
+            if not isinstance(limit, int) or limit < 1:
+                raise ValueError(f"Invalid limit value: {limit}")
             query += " LIMIT ?"
             params.append(limit)
 
@@ -983,6 +998,9 @@ def get_all_entries(
         params: list = [language]
 
         if limit:
+            # Validate limit is a positive integer to prevent SQL injection
+            if not isinstance(limit, int) or limit < 1:
+                raise ValueError(f"Invalid limit value: {limit}")
             query += " LIMIT ?"
             params.append(limit)
 

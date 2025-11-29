@@ -59,8 +59,17 @@ def generate_whisper_prompt(
     Returns:
         Formatted prompt string suitable for Whisper's initial_prompt parameter.
     """
+    # Validate max_tokens parameter
+    if max_tokens <= 0:
+        raise ValueError(f"max_tokens must be positive, got {max_tokens}")
+
     if not entries:
         return ""
+
+    # Memory protection: cap entries at reasonable limit (1000) to prevent OOM
+    # with very large dictionaries
+    if len(entries) > 1000:
+        entries = entries[:1000]
 
     # Sort by boost_weight (descending) to prioritize important entries
     sorted_entries = sorted(entries, key=lambda e: e.boost_weight, reverse=True)
@@ -71,11 +80,15 @@ def generate_whisper_prompt(
     for entry in sorted_entries:
         # Get canonical name and up to 2 key aliases
         canonical = entry.canonical
-        key_aliases = [a.alias for a in entry.aliases[:2] if not a.is_common_misspelling]
+        # Handle None/empty aliases list
+        aliases = entry.aliases if entry.aliases is not None else []
+        key_aliases = [a.alias for a in aliases[:2] if not a.is_common_misspelling]
 
         # Map entry types to display labels
         # EntryWithRelations has type directly, not via entry.type
-        type_label = _get_type_label(entry.type)
+        # Handle None type (should not happen but defensive)
+        entry_type = entry.type if entry.type is not None else "misc"
+        type_label = _get_type_label(entry_type)
         type_groups[type_label].append((canonical, key_aliases))
 
     # Build context-aware meta prefix
@@ -157,8 +170,9 @@ def generate_whisper_prompt(
                 parts.append(truncated_str)
                 current_tokens += estimate_tokens(truncated_str) + 1
 
-            # Stop adding more groups if we're near the limit
-            if current_tokens >= max_tokens * 0.9:
+            # Stop adding more groups if we're at or exceeding the limit
+            # Use strict >= to prevent off-by-one overage
+            if current_tokens >= max_tokens:
                 break
 
     if not parts:
@@ -176,6 +190,10 @@ def _get_type_label(entry_type: str) -> str:
     Returns:
         Human-readable label for the type group.
     """
+    # Handle None/empty type
+    if not entry_type:
+        return "Other"
+
     type_map = {
         "person": "People",
         "place": "Places",
@@ -221,8 +239,17 @@ def generate_correction_block(
     Returns:
         Markdown-formatted dictionary block for inclusion in correction prompts.
     """
+    # Validate max_entries parameter
+    if max_entries <= 0:
+        raise ValueError(f"max_entries must be positive, got {max_entries}")
+
     if not entries:
         return ""
+
+    # Memory protection: cap entries at reasonable limit (1000) to prevent OOM
+    # with very large dictionaries
+    if len(entries) > 1000:
+        entries = entries[:1000]
 
     # Sort by boost_weight (descending) and take top entries
     sorted_entries = sorted(entries, key=lambda e: e.boost_weight, reverse=True)
@@ -233,7 +260,7 @@ def generate_correction_block(
         "## Vocabulary Hints (SUGGESTIONS ONLY - not guaranteed to appear)",
         "",
         "These terms MAY appear in this transcript. They are hints, not facts.",
-        "Only apply a term if the ASR output contains a NEAR-MISS (phonetic match or close spelling).",
+        "Only apply a term if ASR output contains a NEAR-MISS (phonetic or spelling).",
         "",
         "| Term | Type | Aliases | Notes |",
         "|------|------|---------|-------|",
@@ -241,12 +268,15 @@ def generate_correction_block(
 
     for entry in selected_entries:
         canonical = _escape_markdown_cell(entry.canonical)
-        entry_type = entry.type  # Direct attribute on EntryWithRelations
+        # Handle None type
+        entry_type = entry.type if entry.type is not None else "misc"
 
         # Get non-misspelling aliases (up to 3)
+        # Handle None/empty aliases list
+        entry_aliases = entry.aliases if entry.aliases is not None else []
         aliases = [
             _escape_markdown_cell(a.alias)
-            for a in entry.aliases[:3]
+            for a in entry_aliases[:3]
             if not a.is_common_misspelling
         ]
         aliases_str = ", ".join(aliases) if aliases else ""
@@ -285,8 +315,9 @@ def _escape_markdown_cell(text: str) -> str:
     """
     if not text:
         return ""
-    # Escape pipe characters and newlines
-    return text.replace("|", "\\|").replace("\n", " ").strip()
+    # Escape backslashes first to prevent double-escaping
+    # Then escape pipe characters and replace newlines with spaces
+    return text.replace("\\", "\\\\").replace("|", "\\|").replace("\n", " ").strip()
 
 
 def generate_combined_prompt(
@@ -309,7 +340,9 @@ def generate_combined_prompt(
     Returns:
         Tuple of (whisper_prompt, correction_block).
     """
-    whisper_prompt = generate_whisper_prompt(entries, max_tokens=whisper_max_tokens, context=context)
+    whisper_prompt = generate_whisper_prompt(
+        entries, max_tokens=whisper_max_tokens, context=context
+    )
     correction_block = generate_correction_block(entries, max_entries=correction_max_entries)
     return whisper_prompt, correction_block
 

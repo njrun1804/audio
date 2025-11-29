@@ -26,84 +26,92 @@ def create_schema(conn: sqlite3.Connection) -> None:
 
     Args:
         conn: SQLite connection (caller manages transaction)
+
+    Raises:
+        sqlite3.Error: If schema creation fails
     """
-    # Create entries table
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS entries (
-            id TEXT PRIMARY KEY,
-            canonical TEXT NOT NULL,
-            display TEXT,
-            type TEXT NOT NULL CHECK(type IN (
-                'person', 'org', 'product', 'event', 'location', 'jargon', 'misc'
-            )),
-            tier TEXT NOT NULL DEFAULT 'D' CHECK(tier IN (
-                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
-            )),
-            boost_weight REAL NOT NULL DEFAULT 1.0 CHECK(
-                boost_weight >= 0.0 AND boost_weight <= 3.0
-            ),
-            language TEXT NOT NULL DEFAULT 'en',
-            occurrence_count INTEGER NOT NULL DEFAULT 0,
-            last_seen_at TEXT,
-            source TEXT,
-            notes TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-    """)
+    try:
+        # Create entries table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS entries (
+                id TEXT PRIMARY KEY,
+                canonical TEXT NOT NULL,
+                display TEXT,
+                type TEXT NOT NULL CHECK(type IN (
+                    'person', 'org', 'product', 'event', 'location', 'jargon', 'misc'
+                )),
+                tier TEXT NOT NULL DEFAULT 'D' CHECK(tier IN (
+                    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
+                )),
+                boost_weight REAL NOT NULL DEFAULT 1.0 CHECK(
+                    boost_weight >= 0.0 AND boost_weight <= 3.0
+                ),
+                language TEXT NOT NULL DEFAULT 'en',
+                occurrence_count INTEGER NOT NULL DEFAULT 0,
+                last_seen_at TEXT,
+                source TEXT,
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
 
-    # Create aliases table
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS aliases (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            entry_id TEXT NOT NULL,
-            alias TEXT NOT NULL,
-            is_common_misspelling INTEGER NOT NULL DEFAULT 0,
-            FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE,
-            UNIQUE(entry_id, alias)
-        )
-    """)
+        # Create aliases table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS aliases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entry_id TEXT NOT NULL,
+                alias TEXT NOT NULL,
+                is_common_misspelling INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE,
+                UNIQUE(entry_id, alias)
+            )
+        """)
 
-    # Create pronunciations table
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS pronunciations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            entry_id TEXT NOT NULL,
-            ipa TEXT,
-            phoneme_sequence TEXT,
-            language TEXT NOT NULL DEFAULT 'en',
-            variant TEXT,
-            FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE
-        )
-    """)
+        # Create pronunciations table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS pronunciations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entry_id TEXT NOT NULL,
+                ipa TEXT,
+                phoneme_sequence TEXT,
+                language TEXT NOT NULL DEFAULT 'en',
+                variant TEXT,
+                FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE
+            )
+        """)
 
-    # Create entry_contexts table (many-to-many relationship)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS entry_contexts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            entry_id TEXT NOT NULL,
-            context TEXT NOT NULL,
-            FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE,
-            UNIQUE(entry_id, context)
-        )
-    """)
+        # Create entry_contexts table (many-to-many relationship)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS entry_contexts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entry_id TEXT NOT NULL,
+                context TEXT NOT NULL,
+                FOREIGN KEY (entry_id) REFERENCES entries(id) ON DELETE CASCADE,
+                UNIQUE(entry_id, context)
+            )
+        """)
 
-    # Create schema_version table for migration tracking
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS schema_version (
-            version INTEGER PRIMARY KEY,
-            applied_at TEXT NOT NULL
-        )
-    """)
+        # Create schema_version table for migration tracking
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS schema_version (
+                version INTEGER PRIMARY KEY,
+                applied_at TEXT NOT NULL
+            )
+        """)
 
-    # Create all indexes
-    _create_indexes(conn)
+        # Create all indexes
+        _create_indexes(conn)
 
-    # Record schema version
-    conn.execute("""
-        INSERT OR IGNORE INTO schema_version (version, applied_at)
-        VALUES (?, ?)
-    """, (SCHEMA_VERSION, datetime.now().isoformat()))
+        # Record schema version
+        conn.execute("""
+            INSERT OR IGNORE INTO schema_version (version, applied_at)
+            VALUES (?, ?)
+        """, (SCHEMA_VERSION, datetime.now().isoformat()))
+
+    except sqlite3.Error as e:
+        logger.error(f"Schema creation failed: {e}")
+        raise
 
 
 def _create_indexes(conn: sqlite3.Connection) -> None:
@@ -230,8 +238,11 @@ def get_schema_version(conn: sqlite3.Connection) -> int | None:
         row = cursor.fetchone()
         return row[0] if row and row[0] is not None else None
     except sqlite3.OperationalError:
-        # Table doesn't exist
+        # Table doesn't exist yet
         return None
+    except sqlite3.Error as e:
+        logger.error(f"Failed to get schema version: {e}")
+        raise
 
 
 def needs_migration(conn: sqlite3.Connection) -> bool:
@@ -242,6 +253,10 @@ def needs_migration(conn: sqlite3.Connection) -> bool:
 
     Returns:
         True if migration is needed
+
+    Note:
+        For thread safety during concurrent access, the caller should
+        use a file lock when acting on migration decisions.
     """
     current_version = get_schema_version(conn)
     return current_version is None or current_version < SCHEMA_VERSION
@@ -342,8 +357,8 @@ def _parse_legacy_vocab_file(path: Path) -> list[str]:
                 continue
             terms.append(line)
     except Exception as e:
-        # Silently skip files that can't be read
-        logger.debug(f"Failed to read legacy vocabulary file {path}: {e}")
+        # Log at WARNING level so users know about failed imports
+        logger.warning(f"Failed to read legacy vocabulary file {path}: {e}")
 
     return terms
 
@@ -542,10 +557,18 @@ def export_to_json(output_path: Path, context: str | None = None) -> int:
 
         entries.append(export_item)
 
-    # Write JSON file
+    # Write JSON file with atomic write
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(entries, f, indent=2, ensure_ascii=False)
+    temp_path = output_path.with_suffix(output_path.suffix + '.tmp')
+    try:
+        with open(temp_path, "w", encoding="utf-8") as f:
+            json.dump(entries, f, indent=2, ensure_ascii=False)
+        temp_path.replace(output_path)  # Atomic rename
+    except Exception:
+        # Clean up temp file on error
+        if temp_path.exists():
+            temp_path.unlink()
+        raise
 
     return len(entries)
 
@@ -564,8 +587,16 @@ def vacuum_database() -> None:
 
     with db_connection() as conn:
         # VACUUM cannot run inside a transaction
-        conn.isolation_level = None
-        conn.execute("VACUUM")
+        original_isolation = conn.isolation_level
+        try:
+            conn.isolation_level = None
+            conn.execute("VACUUM")
+        except Exception as e:
+            logger.error(f"VACUUM failed: {e}")
+            raise
+        finally:
+            # Restore original isolation level
+            conn.isolation_level = original_isolation
 
 
 def analyze_database() -> None:
@@ -577,8 +608,16 @@ def analyze_database() -> None:
 
     with db_connection() as conn:
         # ANALYZE cannot run inside a transaction
-        conn.isolation_level = None
-        conn.execute("ANALYZE")
+        original_isolation = conn.isolation_level
+        try:
+            conn.isolation_level = None
+            conn.execute("ANALYZE")
+        except Exception as e:
+            logger.error(f"ANALYZE failed: {e}")
+            raise
+        finally:
+            # Restore original isolation level
+            conn.isolation_level = original_isolation
 
 
 def rebuild_indexes() -> None:
@@ -600,12 +639,27 @@ def rebuild_indexes() -> None:
             """)
             indexes = [row[0] for row in cursor.fetchall()]
 
+            # Validate index names to prevent SQL injection
+            # SQLite identifiers can contain: a-z, A-Z, 0-9, underscore
+            # Our indexes all start with 'idx_'
+            import re
+            valid_index_pattern = re.compile(r'^idx_[a-zA-Z0-9_]+$')
+
             # Drop all indexes
             for idx_name in indexes:
+                if not valid_index_pattern.match(idx_name):
+                    logger.warning(f"Skipping invalid index name: {idx_name}")
+                    continue
+                # Use parameterized DROP (note: SQLite doesn't support ? for identifiers,
+                # but we've validated the name, so this is safe)
                 conn.execute(f"DROP INDEX IF EXISTS {idx_name}")
 
             # Recreate indexes
-            _create_indexes(conn)
+            try:
+                _create_indexes(conn)
+            except Exception as e:
+                logger.error(f"Failed to recreate indexes: {e}")
+                raise
 
 
 def check_integrity() -> tuple[bool, list[str]]:
