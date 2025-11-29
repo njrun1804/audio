@@ -147,10 +147,25 @@ class TranscriptLogger:
         memory_gb: Optional[float] = None,
     ) -> None:
         """Log per-chunk transcription metrics for performance analysis."""
-        if chunk_duration_seconds > 0:
-            chunk_rtf = transcription_seconds / chunk_duration_seconds
-        else:
-            chunk_rtf = 0
+        # RTF: <1 means faster than realtime
+        chunk_rtf = (
+            transcription_seconds / chunk_duration_seconds
+            if chunk_duration_seconds > 0
+            else 0
+        )
+        # Speech rate: words per second of audio (speech density)
+        speech_rate = (
+            word_count / chunk_duration_seconds
+            if chunk_duration_seconds > 0
+            else 0
+        )
+        # Processing rate: words transcribed per second of compute
+        processing_rate = (
+            word_count / transcription_seconds
+            if transcription_seconds > 0
+            else 0
+        )
+
         self._write_event("chunk_timing", {
             "chunk_index": chunk_index,
             "total_chunks": total_chunks,
@@ -158,6 +173,8 @@ class TranscriptLogger:
             "transcription_seconds": round(transcription_seconds, 3),
             "chunk_rtf": round(chunk_rtf, 4),
             "word_count": word_count,
+            "speech_rate": round(speech_rate, 2),  # words/sec of audio
+            "processing_rate": round(processing_rate, 2),  # words/sec of compute
             "avg_confidence": round(avg_confidence, 4) if avg_confidence else None,
             "memory_gb": round(memory_gb, 2) if memory_gb else None,
         })
@@ -368,9 +385,10 @@ class TranscriptLogger:
 
             # Only clear buffer after successful write
             with self._buffer_lock:
-                # Remove only the events we successfully wrote
+                # Remove the events we successfully wrote
                 # (in case new events were added during write)
-                self._log_buffer = [e for e in self._log_buffer if e not in events_to_write]
+                written_count = len(events_to_write)
+                self._log_buffer = self._log_buffer[written_count:]
 
         except IOError as e:
             # On I/O error, keep buffer intact for retry
@@ -400,10 +418,11 @@ def set_logger(logger: TranscriptLogger | None) -> None:
 def log_event(event_type: str, data: dict) -> None:
     """Convenience function to log to current session if active (thread-safe)."""
     with _logger_lock:
-        if _current_logger:
-            # Call _write_event while holding the lock to prevent race conditions
-            # where logger could be set to None between check and write
-            _current_logger._write_event(event_type, data)
+        logger = _current_logger
+    # Call _write_event outside the lock - _write_event has its own buffer lock
+    # and we don't want nested locks
+    if logger:
+        logger._write_event(event_type, data)
 
 
 def _flush_on_exit():

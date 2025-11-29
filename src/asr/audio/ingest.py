@@ -53,6 +53,7 @@ class AudioChunk:
     start_time: float  # Original file offset in seconds
     duration: float
     path: Path  # Temp WAV path for backends that need file input
+    difficulty_score: float = 0.0  # 0=easy, 1=hard; used for adaptive processing
 
 
 def check_ffmpeg() -> None:
@@ -523,6 +524,43 @@ def detect_speech_segments(
         return [(0.0, total_duration)]
 
 
+def _estimate_chunk_difficulty(
+    samples: np.ndarray,
+    sample_rate: int,
+    vad_probs: list[float] | None = None,
+) -> float:
+    """Estimate difficulty score for an audio chunk.
+
+    Uses RMS energy and VAD probabilities to estimate how difficult
+    the audio will be to transcribe accurately.
+
+    Args:
+        samples: Audio samples as numpy array
+        sample_rate: Sample rate in Hz
+        vad_probs: Optional VAD frame probabilities (0-1)
+
+    Returns:
+        Difficulty score from 0.0 (easy) to 1.0 (hard)
+    """
+    # RMS energy
+    rms = np.sqrt(np.mean(samples ** 2))
+
+    # If we have VAD frame probabilities, compute SNR proxy
+    if vad_probs:
+        # High variance in VAD = uncertain speech boundaries = harder
+        vad_variance = np.var(vad_probs)
+        # Low average VAD confidence = harder
+        vad_avg = np.mean(vad_probs)
+        difficulty = (1 - vad_avg) * 0.5 + vad_variance * 0.5
+    else:
+        # Use RMS-based heuristic (very quiet or very loud = harder)
+        # Optimal RMS is around 0.1-0.3 for normalized audio
+        optimal_rms = 0.2
+        difficulty = min(1.0, abs(rms - optimal_rms) / optimal_rms)
+
+    return float(np.clip(difficulty, 0.0, 1.0))
+
+
 def _merge_small_segments(
     segments: list[tuple[float, float]],
     min_chunk_duration: float,
@@ -687,7 +725,22 @@ def chunk_audio(
         if seg_duration <= 0:
             continue
 
-        if seg_duration <= max_chunk_seconds:
+        # Adaptive chunk sizing: use smaller chunks for hard segments
+        # Pre-estimate difficulty from segment audio to decide chunk size
+        HARD_SEGMENT_THRESHOLD = 0.35
+        HARD_SEGMENT_MAX_CHUNK = 30.0  # seconds (vs default 60s)
+
+        start_sample = int(seg_start * sample_rate)
+        end_sample = min(int(seg_end * sample_rate), total_samples)
+        seg_samples = samples[start_sample:end_sample]
+        seg_difficulty = _estimate_chunk_difficulty(seg_samples, sample_rate)
+
+        # Use smaller chunks for difficult audio (reduces memory, improves stability)
+        effective_max_chunk = max_chunk_seconds
+        if seg_difficulty > HARD_SEGMENT_THRESHOLD:
+            effective_max_chunk = min(max_chunk_seconds, HARD_SEGMENT_MAX_CHUNK)
+
+        if seg_duration <= effective_max_chunk:
             # Segment fits in one chunk
             start_sample = int(seg_start * sample_rate)
             end_sample = min(int(seg_end * sample_rate), total_samples)
@@ -699,11 +752,15 @@ def chunk_audio(
             chunk_path = temp_dir / f"chunk_{chunk_id:04d}.wav"
             save_wav(chunk_samples, chunk_path, sample_rate)
 
+            # Estimate difficulty score for adaptive processing
+            difficulty = _estimate_chunk_difficulty(chunk_samples, sample_rate)
+
             chunks.append(AudioChunk(
                 samples=chunk_samples,
                 start_time=seg_start,
                 duration=len(chunk_samples) / sample_rate,
                 path=chunk_path,
+                difficulty_score=difficulty,
             ))
             chunk_id += 1
         else:
@@ -711,7 +768,7 @@ def chunk_audio(
             # Validate overlap isn't larger than chunk size (would cause infinite loop)
             # Ensure at least 1 second of progress per iteration to prevent infinite loops
             min_progress = 1.0  # seconds
-            effective_overlap = min(overlap_seconds, max_chunk_seconds - min_progress)
+            effective_overlap = min(overlap_seconds, effective_max_chunk - min_progress)
 
             current_start = seg_start
             iteration_count = 0
@@ -727,7 +784,7 @@ def chunk_audio(
                     )
                     break
 
-                current_end = min(current_start + max_chunk_seconds, seg_end)
+                current_end = min(current_start + effective_max_chunk, seg_end)
 
                 start_sample = int(current_start * sample_rate)
                 end_sample = min(int(current_end * sample_rate), total_samples)
@@ -739,11 +796,15 @@ def chunk_audio(
                 chunk_path = temp_dir / f"chunk_{chunk_id:04d}.wav"
                 save_wav(chunk_samples, chunk_path, sample_rate)
 
+                # Estimate difficulty score for adaptive processing
+                difficulty = _estimate_chunk_difficulty(chunk_samples, sample_rate)
+
                 chunks.append(AudioChunk(
                     samples=chunk_samples,
                     start_time=current_start,
                     duration=len(chunk_samples) / sample_rate,
                     path=chunk_path,
+                    difficulty_score=difficulty,
                 ))
                 chunk_id += 1
 

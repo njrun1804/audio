@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import random
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 
 from pydantic import ValidationError
@@ -447,34 +448,102 @@ class Corrector:
 
         # Process in duration-based batches
         batches = self._create_duration_batches(segments)
-        for batch in batches:
-            batch_changes, batch_texts = self._correct_batch(
-                batch, vocabulary, domain, dictionary_block, dict_terms,
-                entity_context=self.accumulated_entities,
-            )
-            changes_by_segment.update(batch_changes)
-            corrected_texts.update(batch_texts)
 
-            # Accumulate entities from corrections for consistency across batches
-            for seg_id, changes in batch_changes.items():
-                for change in changes:
-                    # Track proper nouns (capitalized words that were corrected)
-                    corrected = change.corrected.strip()
-                    original = change.original.strip()
-                    if corrected and corrected[0].isupper() and corrected != original:
-                        canonical = corrected
-                        if canonical not in self.accumulated_entities:
-                            self.accumulated_entities[canonical] = []
-                        existing = [v.lower() for v in self.accumulated_entities[canonical]]
-                        if original.lower() not in existing:
-                            self.accumulated_entities[canonical].append(original)
-                        # Cap variants at 10 per canonical
-                        variants = self.accumulated_entities[canonical]
-                        self.accumulated_entities[canonical] = variants[:10]
+        # Parallel batch processing (if enabled)
+        if self.config.parallel_batches and len(batches) > 1:
+            MAX_PARALLEL_BATCHES = 3  # Limit concurrent API calls to avoid rate limiting
 
-            # Track dictionary usage for corrections that match entries
-            if dictionary_entries and batch_changes:
-                self._track_dictionary_usage(batch_changes, dictionary_entries)
+            with ThreadPoolExecutor(max_workers=MAX_PARALLEL_BATCHES) as executor:
+                # Submit all batches for parallel processing
+                futures = {}
+                for batch_idx, batch in enumerate(batches):
+                    # Create a snapshot of entity context for this batch
+                    # Each batch gets the current state, not real-time updates
+                    entity_snapshot = dict(self.accumulated_entities)
+                    future = executor.submit(
+                        self._correct_batch,
+                        batch,
+                        vocabulary,
+                        domain,
+                        dictionary_block,
+                        dict_terms,
+                        entity_context=entity_snapshot,
+                    )
+                    futures[future] = (batch_idx, batch)
+
+                # Collect results in order (to preserve entity accumulation sequence)
+                batch_results = [None] * len(batches)
+                for future in as_completed(futures):
+                    batch_idx, batch = futures[future]
+                    try:
+                        batch_changes, batch_texts = future.result()
+                        batch_results[batch_idx] = (batch_changes, batch_texts, batch)
+                    except Exception as e:
+                        # Log error but continue with other batches
+                        print(
+                            f"Warning: Batch {batch_idx} failed with error: {e}",
+                            file=sys.stderr,
+                        )
+                        batch_results[batch_idx] = ({}, {}, batch)
+
+                # Process results in order to maintain entity accumulation
+                for result in batch_results:
+                    if result is None:
+                        continue
+                    batch_changes, batch_texts, batch = result
+                    changes_by_segment.update(batch_changes)
+                    corrected_texts.update(batch_texts)
+
+                    # Accumulate entities from corrections for consistency across batches
+                    for seg_id, changes in batch_changes.items():
+                        for change in changes:
+                            # Track proper nouns (capitalized words that were corrected)
+                            corrected = change.corrected.strip()
+                            original = change.original.strip()
+                            if corrected and corrected[0].isupper() and corrected != original:
+                                canonical = corrected
+                                if canonical not in self.accumulated_entities:
+                                    self.accumulated_entities[canonical] = []
+                                existing = [v.lower() for v in self.accumulated_entities[canonical]]
+                                if original.lower() not in existing:
+                                    self.accumulated_entities[canonical].append(original)
+                                # Cap variants at 10 per canonical
+                                variants = self.accumulated_entities[canonical]
+                                self.accumulated_entities[canonical] = variants[:10]
+
+                    # Track dictionary usage for corrections that match entries
+                    if dictionary_entries and batch_changes:
+                        self._track_dictionary_usage(batch_changes, dictionary_entries)
+        else:
+            # Sequential processing (original behavior)
+            for batch in batches:
+                batch_changes, batch_texts = self._correct_batch(
+                    batch, vocabulary, domain, dictionary_block, dict_terms,
+                    entity_context=self.accumulated_entities,
+                )
+                changes_by_segment.update(batch_changes)
+                corrected_texts.update(batch_texts)
+
+                # Accumulate entities from corrections for consistency across batches
+                for seg_id, changes in batch_changes.items():
+                    for change in changes:
+                        # Track proper nouns (capitalized words that were corrected)
+                        corrected = change.corrected.strip()
+                        original = change.original.strip()
+                        if corrected and corrected[0].isupper() and corrected != original:
+                            canonical = corrected
+                            if canonical not in self.accumulated_entities:
+                                self.accumulated_entities[canonical] = []
+                            existing = [v.lower() for v in self.accumulated_entities[canonical]]
+                            if original.lower() not in existing:
+                                self.accumulated_entities[canonical].append(original)
+                            # Cap variants at 10 per canonical
+                            variants = self.accumulated_entities[canonical]
+                            self.accumulated_entities[canonical] = variants[:10]
+
+                # Track dictionary usage for corrections that match entries
+                if dictionary_entries and batch_changes:
+                    self._track_dictionary_usage(batch_changes, dictionary_entries)
 
         # Build corrected segments with updated text AND corrections metadata
         corrected_segments = []

@@ -461,6 +461,8 @@ def transcribe(
             context_buffer = ""
             MAX_CONTEXT_WORDS = 100  # ~20-30 seconds of speech
 
+            HARD_CHUNK_THRESHOLD = 0.4  # Skip word timestamps for difficult audio
+
             for chunk_idx, chunk in enumerate(chunks):
                 # Build prompt: vocab/bias FIRST, context LAST (gets trimmed)
                 bias_block = effective_prompt or ""
@@ -470,10 +472,15 @@ def transcribe(
                 available = 500 - len(bias_block)
                 chunk_prompt = bias_block + ctx_block[:available] if available > 0 else bias_block
 
+                # Adaptive word timestamps: skip for hard chunks (20-30% faster)
+                chunk_word_timestamps = word_timestamps
+                if word_timestamps and chunk.difficulty_score > HARD_CHUNK_THRESHOLD:
+                    chunk_word_timestamps = False
+
                 chunk_start = time.time()
                 segments = engine.transcribe(
                     audio=chunk,
-                    word_timestamps=word_timestamps,
+                    word_timestamps=chunk_word_timestamps,
                     language=config.language,
                     initial_prompt=chunk_prompt if chunk_prompt.strip() else None,
                 )
@@ -494,6 +501,22 @@ def transcribe(
                     word_count=chunk_word_count,
                     avg_confidence=chunk_avg_conf,
                 )
+
+                # Log per-chunk word confidence details
+                all_words = []
+                for seg in segments:
+                    if seg.words:
+                        all_words.extend(
+                            {"word": w.word, "probability": w.confidence}
+                            for w in seg.words
+                        )
+                if all_words:
+                    logger.log_chunk_transcribed(
+                        chunk_id=chunk_idx,
+                        words=all_words,
+                        start_time=chunk.start_time,
+                        duration=chunk.duration,
+                    )
 
                 # Update rolling context buffer with this chunk's output
                 for seg in segments:
@@ -1721,6 +1744,8 @@ def evaluate(
                 MAX_CONTEXT_WORDS = 100
 
                 all_segments = []
+                HARD_CHUNK_THRESHOLD = 0.4  # Skip word timestamps for difficult audio
+
                 for chunk_idx, chunk in enumerate(chunks):
                     chunk_start = time.time()
 
@@ -1732,9 +1757,15 @@ def evaluate(
                     else:
                         chunk_prompt = vocab_prompt
 
+                    # Adaptive word timestamps: skip for hard chunks (20-30% faster)
+                    chunk_word_timestamps = word_timestamps
+                    if word_timestamps and chunk.difficulty_score > HARD_CHUNK_THRESHOLD:
+                        chunk_word_timestamps = False
+                        console.print(f"    [dim]Chunk {chunk_idx}: hard audio (d={chunk.difficulty_score:.2f}), skipping word timestamps[/dim]")
+
                     segments = engine.transcribe(
                         audio=chunk,
-                        word_timestamps=word_timestamps,
+                        word_timestamps=chunk_word_timestamps,
                         language=config.language,
                         initial_prompt=chunk_prompt,
                     )
@@ -1749,6 +1780,14 @@ def evaluate(
                     # Log chunk timing for analysis
                     word_count = sum(len(seg.text.split()) for seg in segments)
                     avg_conf = sum(seg.confidence for seg in segments) / len(segments) if segments else 0
+
+                    # Get memory usage
+                    try:
+                        import psutil
+                        memory_gb = psutil.Process().memory_info().rss / (1024**3)
+                    except Exception:
+                        memory_gb = None
+
                     session_logger.log_chunk_timing(
                         chunk_index=chunk_idx,
                         total_chunks=len(chunks),
@@ -1756,12 +1795,13 @@ def evaluate(
                         transcription_seconds=chunk_time,
                         word_count=word_count,
                         avg_confidence=avg_conf,
+                        memory_gb=memory_gb,
                     )
 
                     console.print(f"    Chunk {chunk_idx + 1}/{len(chunks)}: {chunk_time:.1f}s", end="\r")  # noqa: E501
                 console.print()  # Clear the \r line
 
-                raw_text = " ".join(seg.text for seg in merge_segments(all_segments))
+                raw_text = " ".join(seg.text for seg in all_segments)
                 transcription_time = time.time() - start
 
                 # Calculate raw WER

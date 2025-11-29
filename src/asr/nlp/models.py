@@ -119,6 +119,10 @@ class CorrectionConfig(BaseModel):
     # Disabled: <low_conf> tags are sufficient for Claude with extended thinking
     show_word_confidences: bool = False
 
+    # Parallel batch processing - overlaps I/O-bound API calls
+    # Trade-off: entity accumulation is less effective but overall speed improves
+    parallel_batches: bool = True
+
 
 class CorrectionResult(BaseModel):
     """Full result from the correction pipeline."""
