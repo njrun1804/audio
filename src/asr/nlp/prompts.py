@@ -6,11 +6,54 @@ the correction pipeline is conservative by default.
 """
 
 import re
+import html
 
 from asr.models.transcript import WordTiming
 
 # Default low-confidence threshold for marking words that need review
 DEFAULT_LOW_CONFIDENCE_THRESHOLD = 0.7
+
+
+def _sanitize_prompt_input(text: str) -> str:
+    """Sanitize user input to prevent prompt injection attacks.
+
+    Escapes special characters and removes potential prompt manipulation patterns.
+
+    Args:
+        text: User-provided input (vocabulary, domain, etc.)
+
+    Returns:
+        Sanitized text safe for prompt inclusion
+    """
+    if not text:
+        return ""
+
+    # Remove control characters and non-printable characters
+    sanitized = "".join(char for char in text if char.isprintable() or char.isspace())
+
+    # Escape HTML/XML special characters to prevent tag injection
+    sanitized = html.escape(sanitized)
+
+    # Remove patterns that could manipulate prompts
+    # Block common injection patterns
+    injection_patterns = [
+        r"system:",
+        r"assistant:",
+        r"user:",
+        r"<\|.*?\|>",  # Special tokens
+        r"\[INST\]",   # Instruction markers
+        r"\[/INST\]",
+    ]
+
+    for pattern in injection_patterns:
+        sanitized = re.sub(pattern, "", sanitized, flags=re.IGNORECASE)
+
+    # Limit length to prevent excessive token usage
+    MAX_INPUT_LENGTH = 1000
+    if len(sanitized) > MAX_INPUT_LENGTH:
+        sanitized = sanitized[:MAX_INPUT_LENGTH]
+
+    return sanitized.strip()
 
 # CrisperWhisper context - prepended to all domain prompts
 CRISPERWHISPER_CONTEXT = """SOURCE: CrisperWhisper (verbatim-optimized Whisper model)
@@ -26,8 +69,9 @@ ANTI-HALLUCINATION RULES:
 """
 
 # Domain-specific system prompts with strict non-hallucination rules
+_GENERAL_PROMPT = """You are an ASR error corrector. Fix OBVIOUS errors only."""
 DOMAIN_PROMPTS = {
-    "general": CRISPERWHISPER_CONTEXT + """You are an ASR error corrector. Your task is to fix OBVIOUS transcription errors only.
+    "general": CRISPERWHISPER_CONTEXT + _GENERAL_PROMPT + """
 
 CRITICAL RULES:
 1. You may ONLY rewrite text inside <low_conf>...</low_conf> tags
@@ -38,7 +82,7 @@ CRITICAL RULES:
 6. Preserve filler words ("um", "uh", "you know")
 7. Assume the transcription is probably correct - only fix clear errors""",
 
-    "biography": CRISPERWHISPER_CONTEXT + """You are an ASR error corrector for biographical content.
+    "biography": CRISPERWHISPER_CONTEXT + """You correct ASR for biographical content.
 
 CRITICAL RULES:
 1. You may ONLY rewrite text inside <low_conf>...</low_conf> tags
@@ -82,7 +126,7 @@ CRITICAL RULES:
 6. If unsure, keep the original - precision matters more than readability
 7. Legal transcripts require verbatim accuracy, not polished prose""",
 
-    "conversational": CRISPERWHISPER_CONTEXT + """You are an ASR error corrector for conversational speech.
+    "conversational": CRISPERWHISPER_CONTEXT + """You correct ASR for conversational speech.
 
 CRITICAL RULES:
 1. You may ONLY rewrite text inside <low_conf>...</low_conf> tags
@@ -147,13 +191,17 @@ Return a JSON object with this exact structure:
   "corrected_segments": [
     {{
       "id": <segment_id>,
-      "corrected": "<corrected text with <low_conf> tags REMOVED>",
+      "corrected": "<COMPLETE SEGMENT TEXT with corrections, <low_conf> tags removed>",
       "changes": [
-        {{"original": "<original_word>", "corrected": "<corrected_word>", "reason": "<brief reason>"}}
+        {{"original": "<word>", "corrected": "<word>", "reason": "<reason>"}}
       ]
     }}
   ]
 }}
+
+CRITICAL: The "corrected" field must contain the FULL segment text, not just the changed words.
+Example: If input is "I have a <low_conf>Mac book</low_conf> computer", output should be:
+  "corrected": "I have a MacBook computer"  (FULL text, not just "MacBook")
 
 IMPORTANT:
 - Only include segments where you made changes
@@ -210,7 +258,7 @@ Example:
 Return a JSON object:
 {{
   "consistency_fixes": [
-    {{"segment_id": <id>, "original": "<text>", "corrected": "<text>", "reason": "entity consistency: X"}}
+    {{"segment_id": <id>, "original": "<text>", "corrected": "<text>", "reason": "consistency"}}
   ],
   "entity_map": {{
     "<canonical_spelling>": ["<variant1>", "<variant2>"]
@@ -263,7 +311,7 @@ Use your thinking to carefully review this transcript. Look for:
 Return a JSON object:
 {{
   "final_fixes": [
-    {{"segment_id": <id>, "original": "<text>", "corrected": "<text>", "reason": "<reason>", "confidence": "high"}}
+    {{"segment_id": <id>, "original": "<text>", "corrected": "<text>", "reason": "<reason>"}}
   ],
   "quality_assessment": "<brief overall assessment>"
 }}
@@ -275,7 +323,20 @@ REMEMBER: This is the FINAL pass. Only make changes you are HIGHLY confident abo
 
 
 def get_pass1_system_prompt(domain: str | None = None) -> str:
-    """Get domain-specific Pass 1 system prompt with safety constraints."""
+    """Get domain-specific Pass 1 system prompt with safety constraints.
+
+    Args:
+        domain: Domain name (e.g., "biography", "technical", "medical")
+
+    Returns:
+        Formatted system prompt with domain-specific rules
+    """
+    # Validate domain to prevent injection
+    if domain:
+        # Only allow alphanumeric and underscore in domain names
+        if not re.match(r'^[a-zA-Z0-9_]+$', domain):
+            domain = "general"  # Fallback to safe default
+
     domain_key = domain if domain in DOMAIN_PROMPTS else "general"
     domain_prompt = DOMAIN_PROMPTS[domain_key]
     return PASS1_SYSTEM_TEMPLATE.format(domain_prompt=domain_prompt)
@@ -302,6 +363,12 @@ def format_segments_for_pass1(
 
     if not segments:
         return json.dumps([])
+
+    # Validate parameters
+    if window < 0:
+        window = 0
+    if window > 100:  # Cap to prevent memory issues
+        window = 100
 
     formatted = []
     for i, seg in enumerate(segments):
@@ -340,10 +407,27 @@ def format_segments_for_pass1(
         formatted.append(segment_data)
 
     # Compact JSON - no indent means fewer tokens for Haiku
-    return json.dumps(formatted, separators=(",", ":"))
+    json_output = json.dumps(formatted, separators=(",", ":"))
+
+    # Token count estimation and warning for very large transcripts
+    # Rough estimate: 1 token ≈ 4 characters for JSON
+    estimated_tokens = len(json_output) // 4
+    MAX_RECOMMENDED_TOKENS = 50000  # Conservative limit for prompt context
+
+    if estimated_tokens > MAX_RECOMMENDED_TOKENS:
+        import sys
+        print(
+            f"Warning: Large transcript detected (~{estimated_tokens} tokens). "
+            f"Consider processing in smaller batches to avoid API limits.",
+            file=sys.stderr,
+        )
+
+    return json_output
 
 
-def format_word_confidences(words: list[WordTiming], threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD) -> list[dict]:
+def format_word_confidences(
+    words: list[WordTiming], threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD
+) -> list[dict]:
     """Format word-level confidence scores for Claude.
 
     Returns list of dicts with word, confidence, and whether it's below threshold.
@@ -363,7 +447,9 @@ def format_word_confidences(words: list[WordTiming], threshold: float = DEFAULT_
     return result
 
 
-def mark_low_confidence_spans(words: list[WordTiming], threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD) -> str:
+def mark_low_confidence_spans(
+    words: list[WordTiming], threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD
+) -> str:
     """Mark contiguous low-confidence words with <low_conf> tags.
 
     Groups adjacent low-confidence words into spans to reduce tag clutter.
@@ -454,10 +540,16 @@ def mark_low_confidence_spans(words: list[WordTiming], threshold: float = DEFAUL
     if in_low_conf and low_conf_buffer:
         result.append(f"<low_conf>{' '.join(low_conf_buffer)}</low_conf>")
 
+    # Handle empty result edge case
+    if not result:
+        return ""
+
     return " ".join(result)
 
 
-def extract_high_confidence_text(words: list[WordTiming], threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD) -> list[str]:
+def extract_high_confidence_text(
+    words: list[WordTiming], threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD
+) -> list[str]:
     """Extract high-confidence words that should NOT be changed.
 
     Returns list of (word, position) tuples for diff gating.
@@ -516,20 +608,43 @@ def validate_correction(
 
     # Allow minor variations (punctuation, case) but flag substantial changes
     # If more than 20% of protected words are missing, reject
+    # Guard against division by zero when all words are filtered out
     if len(protected_words) > 0:
         violation_rate = len(violations) / len(protected_words)
         is_valid = violation_rate < 0.2
     else:
+        # No protected words means nothing to validate
         is_valid = True
 
     return is_valid, violations
 
 
 def format_transcript_for_pass2(segments: list) -> str:
-    """Format full transcript for Pass 2 prompt."""
+    """Format full transcript for Pass 2 prompt.
+
+    Args:
+        segments: List of transcript segments
+
+    Returns:
+        Formatted transcript string
+
+    Raises:
+        ValueError: If segments list is too large (memory protection)
+    """
+    # Memory protection: limit total segments to prevent OOM
+    MAX_SEGMENTS = 10000  # ~100 hours of audio at typical segmentation
+    if len(segments) > MAX_SEGMENTS:
+        raise ValueError(
+            f"Transcript too large: {len(segments)} segments exceeds maximum of {MAX_SEGMENTS}. "
+            "Consider processing in smaller batches."
+        )
+
     lines = []
     for seg in segments:
-        lines.append(f"[{seg.id}] {seg.text}")
+        # Safely handle missing text attribute
+        text = getattr(seg, 'text', '')
+        seg_id = getattr(seg, 'id', 0)
+        lines.append(f"[{seg_id}] {text}")
     return "\n".join(lines)
 
 
@@ -597,6 +712,7 @@ def validate_phonetic_anchoring(
             for corr_word in corrected_words:
                 # Normalize by length of longer word
                 max_len = max(len(orig_word), len(corr_word))
+                # Guard against division by zero for empty strings
                 if max_len == 0:
                     continue
                 distance = Levenshtein.distance(orig_word, corr_word)
@@ -626,12 +742,57 @@ def validate_phonetic_anchoring(
         return True, None
 
 
+def sanitize_vocabulary(vocabulary: list[str]) -> list[str]:
+    """Sanitize vocabulary list to prevent prompt injection.
+
+    Args:
+        vocabulary: List of vocabulary terms from user input
+
+    Returns:
+        List of sanitized vocabulary terms safe for prompt inclusion
+    """
+    if not vocabulary:
+        return []
+
+    sanitized = []
+    for term in vocabulary:
+        if not term or not isinstance(term, str):
+            continue
+
+        clean_term = _sanitize_prompt_input(term)
+        if clean_term:  # Only include non-empty sanitized terms
+            sanitized.append(clean_term)
+
+    # Limit total vocabulary size to prevent token overflow
+    MAX_VOCAB_TERMS = 500
+    if len(sanitized) > MAX_VOCAB_TERMS:
+        sanitized = sanitized[:MAX_VOCAB_TERMS]
+
+    return sanitized
+
+
 def extract_entities_from_pass1(changes_by_segment: dict[int, list]) -> list[str]:
-    """Extract unique corrected entities from Pass 1 changes."""
+    """Extract unique corrected entities from Pass 1 changes.
+
+    Args:
+        changes_by_segment: Dict mapping segment ID to list of CorrectionChange objects
+
+    Returns:
+        Sorted list of sanitized entity strings
+    """
     entities = set()
     for changes in changes_by_segment.values():
         for change in changes:
+            # Safely access corrected attribute
+            corrected = getattr(change, 'corrected', '')
+            if not corrected:
+                continue
+
             # Likely a proper noun if it has capital letters
-            if any(c.isupper() for c in change.corrected):
-                entities.add(change.corrected)
+            if any(c.isupper() for c in corrected):
+                # Sanitize to prevent prompt injection via entities
+                sanitized_entity = _sanitize_prompt_input(corrected)
+                if sanitized_entity:  # Only add if sanitization didn't remove everything
+                    entities.add(sanitized_entity)
+
     return sorted(entities)

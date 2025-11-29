@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Global VAD model cache to avoid reloading on every call
 # Protected by lock for thread safety
-_VAD_MODEL_CACHE: Optional[tuple] = None
+# Can contain either (model, utils) on success or Exception on failure
+_VAD_MODEL_CACHE: Optional[tuple | Exception] = None
 _VAD_MODEL_LOCK = threading.Lock()
 
 # Track temp directories for cleanup
@@ -241,7 +242,19 @@ def normalize_audio(
     ])
 
     # Run ffmpeg with helper (DRY refactor)
-    _run_subprocess(cmd, timeout, f"ffmpeg processing {input_path}")
+    try:
+        _run_subprocess(cmd, timeout, f"ffmpeg processing {input_path}")
+    except RuntimeError:
+        # Clean up partial output file if ffmpeg failed
+        if output_path.exists():
+            try:
+                output_path.unlink()
+            except Exception as cleanup_error:
+                # Log cleanup failures but don't mask the original error
+                logger.warning(
+                    f"Failed to cleanup {output_path} after ffmpeg error: {cleanup_error}"
+                )
+        raise
 
     # Get duration using ffprobe (DRY refactor)
     duration_cmd = [
@@ -251,7 +264,19 @@ def normalize_audio(
         "-of", "default=noprint_wrappers=1:nokey=1",
         str(output_path),
     ]
-    duration_result = _run_subprocess(duration_cmd, 30, f"ffprobe for {output_path}")
+    try:
+        duration_result = _run_subprocess(duration_cmd, 30, f"ffprobe for {output_path}")
+    except RuntimeError:
+        # Clean up output file if ffprobe failed (file may be corrupt)
+        if output_path.exists():
+            try:
+                output_path.unlink()
+            except Exception as cleanup_error:
+                # Log cleanup failures but don't mask the original error
+                logger.warning(
+                    f"Failed to cleanup {output_path} after ffprobe error: {cleanup_error}"
+                )
+        raise
 
     duration_str = duration_result.stdout.strip()
     if not duration_str:
@@ -289,7 +314,29 @@ def load_audio_samples(path: Path) -> np.ndarray:
             n_frames = wf.getnframes()
             if n_frames == 0:
                 raise RuntimeError(f"Audio file is empty: {path}")
+
+            # Validate that claimed frame count doesn't exceed reasonable limits
+            # based on file size (prevent malformed files from causing memory exhaustion)
+            sample_width = wf.getsampwidth()
+            channels = wf.getnchannels()
+            expected_bytes = n_frames * sample_width * channels
+
+            # Allow up to 10% overhead for WAV headers/metadata
+            if expected_bytes > file_size * 1.1:
+                raise RuntimeError(
+                    f"WAV file appears corrupt: claims {n_frames} frames "
+                    f"({expected_bytes} bytes) but file is only {file_size} bytes"
+                )
+
             frames = wf.readframes(n_frames)
+
+            # Validate actual bytes read matches expected
+            if len(frames) != expected_bytes:
+                raise RuntimeError(
+                    f"WAV file read mismatch: expected {expected_bytes} bytes "
+                    f"but got {len(frames)} bytes"
+                )
+
             samples = np.frombuffer(frames, dtype=np.int16).astype(np.float32)
             samples /= 32768.0  # Normalize to [-1, 1]
         return samples
@@ -303,17 +350,22 @@ def _get_vad_model():
     """Get or load the Silero VAD model (cached).
 
     Uses double-checked locking pattern for thread-safe lazy initialization.
+    Caches both successful loads and failures to avoid repeated failed attempts.
     """
     global _VAD_MODEL_CACHE
 
-    # Fast path: return cached model if available
+    # Fast path: return cached model if available, or raise cached error
     if _VAD_MODEL_CACHE is not None:
+        if isinstance(_VAD_MODEL_CACHE, Exception):
+            raise _VAD_MODEL_CACHE
         return _VAD_MODEL_CACHE
 
     # Slow path: acquire lock and load model
     with _VAD_MODEL_LOCK:
         # Double-check after acquiring lock (another thread may have loaded it)
         if _VAD_MODEL_CACHE is not None:
+            if isinstance(_VAD_MODEL_CACHE, Exception):
+                raise _VAD_MODEL_CACHE
             return _VAD_MODEL_CACHE
 
         import torch
@@ -334,7 +386,10 @@ def _get_vad_model():
             return _VAD_MODEL_CACHE
 
         except Exception as e:
-            raise RuntimeError(f"Failed to load Silero VAD model: {e}")
+            # Cache the error to avoid repeated failed load attempts
+            error = RuntimeError(f"Failed to load Silero VAD model: {e}")
+            _VAD_MODEL_CACHE = error
+            raise error
 
 
 def detect_speech_segments(
@@ -353,8 +408,10 @@ def detect_speech_segments(
     Returns list of (start, end) tuples in seconds.
     """
     # Validate sample_rate to prevent division by zero
-    if not isinstance(sample_rate, int) or sample_rate <= 0:
-        raise ValueError(f"sample_rate must be a positive integer, got {sample_rate}")
+    # Accept int or float but ensure it's positive and non-zero
+    if not isinstance(sample_rate, (int, float)) or sample_rate <= 0:
+        raise ValueError(f"sample_rate must be a positive number, got {sample_rate}")
+    sample_rate = int(sample_rate)  # Ensure integer for later calculations
 
     # Use defaults if no config provided
     if vad_config is None:
@@ -371,6 +428,7 @@ def detect_speech_segments(
         return [(0.0, 0.0)]
 
     total_duration = len(samples) / sample_rate
+    audio_tensor = None  # Initialize to None for safe cleanup
 
     try:
         # Load Silero VAD model (cached)
@@ -405,8 +463,9 @@ def detect_speech_segments(
                 min_silence_duration_ms=int(vad_config.min_silence_duration * 1000),
             )
         finally:
-            # Cleanup tensor to free memory
-            del audio_tensor
+            # Cleanup tensor to free memory (only if created)
+            if audio_tensor is not None:
+                del audio_tensor
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             # Also cleanup MPS cache on Apple Silicon
@@ -566,6 +625,21 @@ def chunk_audio(
         sample_rate: Sample rate in Hz
         temp_dir: Directory for temporary chunk files
     """
+    # Validate sample_rate to prevent division by zero
+    if not isinstance(sample_rate, int) or sample_rate <= 0:
+        raise ValueError(f"sample_rate must be a positive integer, got {sample_rate}")
+
+    # Validate max_chunk_seconds to prevent infinite loops
+    if max_chunk_seconds <= 0:
+        raise ValueError(f"max_chunk_seconds must be positive, got {max_chunk_seconds}")
+
+    # Validate overlap isn't >= max_chunk_seconds (would prevent progress)
+    if overlap_seconds >= max_chunk_seconds:
+        raise ValueError(
+            f"overlap_seconds ({overlap_seconds}) must be less than "
+            f"max_chunk_seconds ({max_chunk_seconds})"
+        )
+
     if temp_dir is None:
         temp_dir = Path(tempfile.mkdtemp(prefix="asr_"))
         # Track for cleanup on exit (thread-safe)
@@ -609,6 +683,10 @@ def chunk_audio(
 
         seg_duration = seg_end - seg_start
 
+        # Skip segments that became invalid due to overlap adjustments
+        if seg_duration <= 0:
+            continue
+
         if seg_duration <= max_chunk_seconds:
             # Segment fits in one chunk
             start_sample = int(seg_start * sample_rate)
@@ -630,8 +708,25 @@ def chunk_audio(
             chunk_id += 1
         else:
             # Split long segment with overlap
+            # Validate overlap isn't larger than chunk size (would cause infinite loop)
+            # Ensure at least 1 second of progress per iteration to prevent infinite loops
+            min_progress = 1.0  # seconds
+            effective_overlap = min(overlap_seconds, max_chunk_seconds - min_progress)
+
             current_start = seg_start
+            iteration_count = 0
+            max_iterations = int((seg_end - seg_start) / min_progress) + 10  # Safety limit
+
             while current_start < seg_end:
+                iteration_count += 1
+                if iteration_count > max_iterations:
+                    logger.warning(
+                        f"Chunk splitting exceeded max iterations ({max_iterations}), "
+                        f"stopping to prevent infinite loop. seg_start={seg_start}, "
+                        f"seg_end={seg_end}, current_start={current_start}"
+                    )
+                    break
+
                 current_end = min(current_start + max_chunk_seconds, seg_end)
 
                 start_sample = int(current_start * sample_rate)
@@ -652,11 +747,17 @@ def chunk_audio(
                 ))
                 chunk_id += 1
 
-                # Move forward with overlap
-                next_start = current_end - overlap_seconds
+                # Move forward with overlap (ensure progress to prevent infinite loop)
+                next_start = current_end - effective_overlap
                 # Check loop termination condition on the updated value
                 if next_start >= seg_end or current_end >= seg_end:
                     break
+                # Ensure we always make forward progress (at least min_progress)
+                if next_start <= current_start + min_progress:
+                    # Force minimum progress to prevent infinite loop
+                    next_start = current_start + min_progress
+                    if next_start >= seg_end:
+                        break
                 current_start = next_start
 
     return chunks
@@ -671,8 +772,18 @@ def save_wav(samples: np.ndarray, path: Path, sample_rate: int = 16000) -> None:
     """Save numpy array as WAV file."""
     import wave
 
-    # Convert back to int16
-    int_samples = (samples * 32768).astype(np.int16)
+    # Validate inputs
+    if not isinstance(samples, np.ndarray):
+        raise TypeError(f"samples must be numpy array, got {type(samples)}")
+    if samples.size == 0:
+        raise ValueError("Cannot save empty audio samples")
+    if not isinstance(sample_rate, int) or sample_rate <= 0:
+        raise ValueError(f"sample_rate must be positive integer, got {sample_rate}")
+
+    # Convert back to int16 with clipping to prevent overflow
+    # Clip to [-1, 1] range before scaling to prevent int16 overflow
+    clipped_samples = np.clip(samples, -1.0, 1.0)
+    int_samples = (clipped_samples * 32767).astype(np.int16)
 
     with wave.open(str(path), "wb") as wf:
         wf.setnchannels(1)
@@ -705,7 +816,7 @@ def prepare_audio(
     normalized_path = cache_dir / "normalized.wav"
 
     if use_cache and normalized_path.exists():
-        duration = load_audio_samples(normalized_path).shape[0] / 16000
+        duration = get_audio_duration(normalized_path)
     else:
         cache_dir.mkdir(parents=True, exist_ok=True)
         # SECURITY: Set restrictive permissions on cache directory

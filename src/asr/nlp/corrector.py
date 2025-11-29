@@ -79,11 +79,12 @@ class Corrector:
     def close(self):
         """Close the Anthropic client and cleanup resources."""
         if self._client is not None:
+            client = self._client
+            self._client = None  # Set to None first to prevent race conditions
             try:
-                self._client.close()
+                client.close()
             except Exception:
                 pass  # Ignore cleanup errors
-            self._client = None
 
     @property
     def client(self):
@@ -210,11 +211,24 @@ class Corrector:
             except APIStatusError as e:
                 # Non-retryable errors - SECURITY: Don't expose API key details
                 if e.status_code == 401:
-                    return None, "Authentication failed. Check your .env file or ANTHROPIC_API_KEY environment variable."
+                    return None, (
+                        "Authentication failed. Check .env or ANTHROPIC_API_KEY."
+                    )
                 elif e.status_code == 400:
                     return None, f"Invalid request: {e.message}"
-                else:
+                elif e.status_code >= 500:
+                    # Server errors are retryable
                     last_error = f"API error ({e.status_code}): {e.message}"
+                    if attempt < MAX_RETRIES - 1:
+                        wait_time = INITIAL_RETRY_DELAY * (2 ** attempt)
+                        print(
+                            f"Server error {e.status_code}, retrying in {wait_time:.1f}s...",
+                            file=sys.stderr,
+                        )
+                        time.sleep(wait_time)
+                else:
+                    # Client errors (other than 400/401) are non-retryable
+                    return None, f"API error ({e.status_code}): {e.message}"
 
             except APIError as e:
                 last_error = f"API error: {e}"
@@ -455,7 +469,8 @@ class Corrector:
                         if original.lower() not in existing:
                             self.accumulated_entities[canonical].append(original)
                         # Cap variants at 10 per canonical
-                        self.accumulated_entities[canonical] = self.accumulated_entities[canonical][:10]
+                        variants = self.accumulated_entities[canonical]
+                        self.accumulated_entities[canonical] = variants[:10]
 
             # Track dictionary usage for corrections that match entries
             if dictionary_entries and batch_changes:
@@ -514,13 +529,16 @@ class Corrector:
         entity_context_block = ""
         if entity_context:
             entity_lines = []
-            for canonical, variants in list(entity_context.items())[:20]:  # Limit to 20 entities
+            # Limit to 20 entities
+            for canonical, variants in list(entity_context.items())[:20]:
                 if variants:
-                    entity_lines.append(f"  - \"{canonical}\" (may appear as: {', '.join(variants[:5])})")
+                    variant_str = ', '.join(variants[:5])
+                    entity_lines.append(f"  - \"{canonical}\" (may appear as: {variant_str})")
                 else:
                     entity_lines.append(f"  - \"{canonical}\"")
             if entity_lines:
-                entity_context_block = "\nKnown entities from earlier segments:\n" + "\n".join(entity_lines) + "\n"
+                entity_list = "\n".join(entity_lines)
+                entity_context_block = f"\nKnown entities from earlier segments:\n{entity_list}\n"
 
         user_prompt = PASS1_USER.format(
             domain=domain,
@@ -643,12 +661,17 @@ class Corrector:
                         # Log successful correction
                         logger = get_logger()
                         if logger:
+                            change_dicts = [
+                                {
+                                    "original": c.original,
+                                    "corrected": c.corrected,
+                                    "reason": c.reason,
+                                }
+                                for c in seg_correction.changes
+                            ]
                             logger.log_correction_applied(
                                 segment_id=seg.id,
-                                changes=[
-                                    {"original": c.original, "corrected": c.corrected, "reason": c.reason}
-                                    for c in seg_correction.changes
-                                ],
+                                changes=change_dicts,
                                 corrected_text=seg_correction.corrected,
                             )
                         break
@@ -675,7 +698,7 @@ class Corrector:
     def _extract_json_from_response(self, text: str) -> str:
         """Extract JSON from response, handling markdown code blocks."""
         if not text:
-            return "{}"
+            return ""
 
         json_str = text
 
@@ -740,8 +763,22 @@ class Corrector:
                 fix_applied = fixes_by_segment.get(seg.id)
 
                 if fix_applied:
+                    # Update both text and corrections metadata
+                    existing_corr = seg.corrections if seg.corrections else CorrectionInfo()
+                    updated_changes = list(existing_corr.changes) if existing_corr.changes else []
+                    change_str = f"{fix_applied.original} -> {fix_applied.corrected} (pass2)"
+                    updated_changes.append(change_str)
+
+                    source = existing_corr.source if existing_corr.source != "none" else "claude"
                     corrected_seg = seg.model_copy(
-                        update={"text": fix_applied.corrected}
+                        update={
+                            "text": fix_applied.corrected,
+                            "corrections": CorrectionInfo(
+                                applied=True,
+                                source=source,
+                                changes=updated_changes,
+                            ),
+                        }
                     )
                     corrected_segments.append(corrected_seg)
                 else:
@@ -809,8 +846,22 @@ class Corrector:
                 fix_applied = fixes_by_segment.get(seg.id)
 
                 if fix_applied:
+                    # Update both text and corrections metadata
+                    existing_corr = seg.corrections if seg.corrections else CorrectionInfo()
+                    updated_changes = list(existing_corr.changes) if existing_corr.changes else []
+                    change_str = f"{fix_applied.original} -> {fix_applied.corrected} (kicker)"
+                    updated_changes.append(change_str)
+
+                    source = existing_corr.source if existing_corr.source != "none" else "claude"
                     corrected_seg = seg.model_copy(
-                        update={"text": fix_applied.corrected}
+                        update={
+                            "text": fix_applied.corrected,
+                            "corrections": CorrectionInfo(
+                                applied=True,
+                                source=source,
+                                changes=updated_changes,
+                            ),
+                        }
                     )
                     corrected_segments.append(corrected_seg)
                 else:

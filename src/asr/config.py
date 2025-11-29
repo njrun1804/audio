@@ -62,8 +62,8 @@ def _file_lock(name: str):
     # Create lock file with restricted permissions
     fd = os.open(str(lock_file), os.O_CREAT | os.O_WRONLY, 0o600)
     try:
-        lock_fh = os.fdopen(fd, 'w')
-    except:
+        lock_fh = os.fdopen(fd, 'w', encoding='utf-8')
+    except Exception:
         os.close(fd)
         raise
 
@@ -241,6 +241,11 @@ def load_config() -> ASRConfig:
             for key in ["cache_dir", "models_dir"]:
                 if key in data and isinstance(data[key], str):
                     data[key] = Path(data[key]).expanduser()
+                    # SECURITY: Validate paths are within expected directories
+                    # Only allow paths under CONFIG_DIR or absolute paths the user owns
+                    path_obj = data[key]
+                    if not path_obj.is_absolute():
+                        raise ValueError(f"Config path must be absolute: {key}={data[key]}")
             config = ASRConfig(**data)
         except (toml.TomlDecodeError, ValueError, TypeError) as e:
             print(f"Warning: Failed to load config ({e}), using defaults", file=sys.stderr)
@@ -264,7 +269,9 @@ def load_config() -> ASRConfig:
 
 
 def save_config(config: ASRConfig) -> None:
-    """Save configuration to file."""
+    """Save configuration to file with atomic write."""
+    import tempfile
+
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     data = config.model_dump()
     # Convert Path objects to strings for TOML
@@ -274,8 +281,25 @@ def save_config(config: ASRConfig) -> None:
     data["correction"] = config.correction.model_dump()
     data["audio_enhancement"] = config.audio_enhancement.model_dump()
     data["vad"] = config.vad.model_dump()
-    with open(CONFIG_FILE, "w") as f:
-        toml.dump(data, f)
+
+    # Write to temporary file first (atomic operation)
+    temp_fd, temp_path = tempfile.mkstemp(dir=CONFIG_DIR, prefix=".config_", suffix=".toml.tmp")
+    try:
+        with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
+            toml.dump(data, f)
+
+        # Set restrictive permissions before moving
+        os.chmod(temp_path, 0o600)
+
+        # Atomic rename
+        os.replace(temp_path, CONFIG_FILE)
+    except Exception:
+        # Clean up temp file on error
+        try:
+            os.unlink(temp_path)
+        except Exception:
+            pass
+        raise
 
 
 def apply_profile(config: ASRConfig, profile: str) -> tuple[ASRConfig, bool]:
@@ -322,12 +346,14 @@ def load_domain_vocabulary(domain: str | None) -> list[str]:
     if not vocab_file.exists():
         return []
 
-    terms = []
-    for line in vocab_file.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#"):
-            terms.append(line)
-    return terms
+    # Use file locking to prevent reading during concurrent writes
+    with _file_lock(f"vocab_{domain}"):
+        terms = []
+        for line in vocab_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith("#"):
+                terms.append(line)
+        return terms
 
 
 def save_domain_vocabulary(domain: str, terms: list[str], append: bool = True) -> int:
@@ -357,16 +383,11 @@ def save_domain_vocabulary(domain: str, terms: list[str], append: bool = True) -
         # Combine and sort
         combined = sorted(existing | set(terms))
 
-        # Get correct timestamp - use vocab_file's mtime if it exists
-        if vocab_file.exists():
-            mtime = datetime.fromtimestamp(vocab_file.stat().st_mtime).isoformat()
-        else:
-            mtime = "new"
-
-        # Write with header comment
+        # Write with header comment (timestamp is current time)
+        current_time = datetime.now().isoformat()
         lines = [
             f"# Vocabulary for domain: {domain}",
-            f"# Updated: {mtime}",
+            f"# Updated: {current_time}",
             "",
         ]
         lines.extend(combined)

@@ -77,9 +77,13 @@ def _parse_vocabulary_terms(
 
 
 def _safe_write_file(path: Path, content: str, description: str = "file") -> bool:
-    """Write file with error handling. Returns True on success."""
+    """Write file with error handling and atomic write. Returns True on success."""
+    temp_path = None
     try:
-        path.write_text(content)
+        # Atomic write: write to temp file first, then rename
+        temp_path = path.with_suffix(path.suffix + '.tmp')
+        temp_path.write_text(content, encoding='utf-8')
+        temp_path.replace(path)  # Atomic on POSIX systems
         return True
     except PermissionError as e:
         _cli_error(f"Permission denied writing {description}", str(e))
@@ -87,6 +91,16 @@ def _safe_write_file(path: Path, content: str, description: str = "file") -> boo
     except OSError as e:
         _cli_error(f"Failed to write {description}", str(e))
         return False
+    except UnicodeEncodeError as e:
+        _cli_error(f"Unicode encoding error writing {description}", str(e))
+        return False
+    finally:
+        # Clean up temp file if it exists and write failed
+        if temp_path and temp_path.exists() and not path.exists():
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass  # Best effort cleanup
 
 
 def _transcribe_chunk(
@@ -168,7 +182,6 @@ def merge_segments(
     # Assert monotonicity (segments should be sorted by start time)
     for i in range(len(renumbered) - 1):
         if renumbered[i].start > renumbered[i + 1].start:
-            import sys
             print(
                 f"Warning: Non-monotonic segment timestamps at index {i}: "
                 f"{renumbered[i].start:.2f}s > {renumbered[i + 1].start:.2f}s",
@@ -802,8 +815,15 @@ def correct_transcript(
         raise typer.Exit(1)
 
     # Load transcript
-    data = json.loads(file.read_text(encoding="utf-8"))
-    transcript = Transcript.model_validate(data)
+    try:
+        data = json.loads(file.read_text(encoding="utf-8"))
+        transcript = Transcript.model_validate(data)
+    except json.JSONDecodeError as e:
+        _cli_error("Invalid JSON file", str(e))
+        raise typer.Exit(1)
+    except Exception as e:
+        _cli_error("Failed to load transcript", str(e))
+        raise typer.Exit(1)
 
     # Parse vocabulary (using DRY helper)
     vocabulary = _parse_vocabulary_terms(prompt, extract_after_colon=True)
@@ -833,7 +853,9 @@ def correct_transcript(
 
     # Save
     out_path = output or file
-    out_path.write_text(format_transcript(transcript, "json"), encoding="utf-8")
+    json_content = format_transcript(transcript, "json")
+    if not _safe_write_file(out_path, json_content, f"corrected transcript to {out_path}"):
+        raise typer.Exit(1)
     console.print(f"[green]Saved:[/green] {out_path}")
 
 
@@ -915,7 +937,7 @@ def bench(
         mem_after = process.memory_info().rss / 1024**3
 
         # Calculate metrics
-        rtf = duration / elapsed
+        rtf = duration / elapsed if elapsed > 0 else 0
         word_count = sum(len(seg.words) if seg.words else 0 for seg in all_segments)
         avg_conf = 0.0
         if all_segments:
@@ -992,7 +1014,7 @@ def bench(
 
         # Write JSON file with pretty printing
         json_content = json.dumps(json_data, indent=2)
-        if not _safe_write_file(json_output, json_content, f"benchmark results"):
+        if not _safe_write_file(json_output, json_content, "benchmark results"):
             raise typer.Exit(1)
         console.print()
         console.print(f"[green]Benchmark results saved:[/green] {json_output}")
@@ -1387,6 +1409,7 @@ def dictionary(
                                 start=0.0,
                                 end=0.0,
                                 text=seg_data["corrected_text"],
+                                raw_text=seg_data.get("original_text", seg_data["corrected_text"]),
                                 confidence=0.9,
                             )
                             segments.append(seg)
@@ -1610,7 +1633,7 @@ def evaluate(
         stats = get_stats()
 
         import time  # Import once, outside loop
-        from concurrent.futures import ThreadPoolExecutor, Future
+        from concurrent.futures import ThreadPoolExecutor
 
         # Build vocab prompt once (same for all stories)
         if stats.total_entries > 0:
@@ -1651,11 +1674,13 @@ def evaluate(
             chunks, duration = prepare_audio(audio_path, config)
             return story, audio_path, ref_text, chunks, duration
 
+        if not valid_stories:
+            console.print("[yellow]No valid stories to evaluate[/yellow]")
+            return
+
         with ThreadPoolExecutor(max_workers=1) as executor:
             # Start preparing first story
-            pending_future: Future | None = None
-            if valid_stories:
-                pending_future = executor.submit(prepare_story, valid_stories[0])
+            pending_future = executor.submit(prepare_story, valid_stories[0])
 
             for i, (story, audio_path) in enumerate(valid_stories):
                 console.print(f"\n[bold]Evaluating: {story.name}[/bold]")
@@ -1702,7 +1727,7 @@ def evaluate(
                     wer_result.substitutions + wer_result.insertions + wer_result.deletions
                 )
 
-                rtf_val = duration / transcription_time
+                rtf_val = duration / transcription_time if transcription_time > 0 else 0
                 console.print(f"  Time: {transcription_time:.1f}s | RTF: {rtf_val:.1f}x")
                 wer_pct = wer_result.wer * 100
                 ref_words = wer_result.reference_words
@@ -1774,7 +1799,9 @@ def evaluate(
 
             if output:
                 import json
-                output.write_text(json.dumps(results, indent=2))
+                json_content = json.dumps(results, indent=2)
+                if not _safe_write_file(output, json_content, "evaluation results"):
+                    raise typer.Exit(1)
                 console.print(f"  Results saved: {output}")
 
     else:

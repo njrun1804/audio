@@ -55,6 +55,8 @@ class TranscriptLogger:
     # PERFORMANCE: Buffer log events to reduce file I/O
     _log_buffer: list[dict[str, Any]] = field(default_factory=list)
     _BUFFER_SIZE: int = field(default=10, repr=False)
+    # Thread safety for buffer operations
+    _buffer_lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def __post_init__(self):
         LOGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -145,7 +147,10 @@ class TranscriptLogger:
         memory_gb: Optional[float] = None,
     ) -> None:
         """Log per-chunk transcription metrics for performance analysis."""
-        chunk_rtf = transcription_seconds / chunk_duration_seconds if chunk_duration_seconds > 0 else 0
+        if chunk_duration_seconds > 0:
+            chunk_rtf = transcription_seconds / chunk_duration_seconds
+        else:
+            chunk_rtf = 0
         self._write_event("chunk_timing", {
             "chunk_index": chunk_index,
             "total_chunks": total_chunks,
@@ -173,9 +178,12 @@ class TranscriptLogger:
         low_conf_regions: int,
     ) -> None:
         """Log correction attempt for a segment."""
+        orig_preview = (
+            original_text[:100] + "..." if len(original_text) > 100 else original_text
+        )
         self._write_event("correction_attempted", {
             "segment_id": segment_id,
-            "original_preview": original_text[:100] + "..." if len(original_text) > 100 else original_text,
+            "original_preview": orig_preview,
             "low_conf_regions": low_conf_regions,
         })
 
@@ -187,11 +195,14 @@ class TranscriptLogger:
     ) -> None:
         """Log successful correction application."""
         self.metrics.corrections_applied += len(changes)
+        corr_preview = (
+            corrected_text[:100] + "..." if len(corrected_text) > 100 else corrected_text
+        )
         self._write_event("correction_applied", {
             "segment_id": segment_id,
             "change_count": len(changes),
             "changes": changes,
-            "corrected_preview": corrected_text[:100] + "..." if len(corrected_text) > 100 else corrected_text,
+            "corrected_preview": corr_preview,
         })
 
     def log_correction_rejected(
@@ -289,10 +300,7 @@ class TranscriptLogger:
             "corrections_applied": self.metrics.corrections_applied,
             "corrections_rejected": self.metrics.corrections_rejected,
             "diff_gating_rejections": self.metrics.diff_gating_rejections,
-            "correction_acceptance_rate": round(
-                self.metrics.corrections_applied /
-                (self.metrics.corrections_applied + self.metrics.corrections_rejected) * 100, 1
-            ) if (self.metrics.corrections_applied + self.metrics.corrections_rejected) > 0 else None,
+            "correction_acceptance_rate": self._calc_acceptance_rate(),
         }
 
         self._write_event("session_complete", summary)
@@ -300,31 +308,74 @@ class TranscriptLogger:
         self._flush_logs()
         return summary
 
+    def _calc_acceptance_rate(self) -> float | None:
+        """Calculate correction acceptance rate."""
+        total = self.metrics.corrections_applied + self.metrics.corrections_rejected
+        if total > 0:
+            return round(self.metrics.corrections_applied / total * 100, 1)
+        return None
+
     def _write_event(self, event_type: str, data: dict) -> None:
         """Buffer a JSON event and flush when buffer is full.
 
         PERFORMANCE: Reduces file I/O by batching writes.
+        Thread-safe: Uses _buffer_lock to prevent concurrent buffer modifications.
         """
         event = {
             "event": event_type,
             "ts": datetime.now().isoformat(),
             **data,
         }
-        self._log_buffer.append(event)
 
-        # Flush if buffer is full or if this is a critical event
-        critical_events = {"session_start", "session_complete", "error"}
-        if len(self._log_buffer) >= self._BUFFER_SIZE or event_type in critical_events:
+        with self._buffer_lock:
+            self._log_buffer.append(event)
+
+            # Flush if buffer is full or if this is a critical event
+            critical_events = {"session_start", "session_complete", "error"}
+            buffer_full = len(self._log_buffer) >= self._BUFFER_SIZE
+            should_flush = buffer_full or event_type in critical_events
+
+        # Flush outside the lock to avoid holding lock during I/O
+        if should_flush:
             self._flush_logs()
 
     def _flush_logs(self) -> None:
-        """Flush buffered log events to disk."""
-        if not self._log_buffer:
-            return
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            for event in self._log_buffer:
-                f.write(json.dumps(event, ensure_ascii=False) + "\n")
-        self._log_buffer.clear()
+        """Flush buffered log events to disk.
+
+        Thread-safe: Acquires _buffer_lock to safely copy and clear buffer.
+        """
+        with self._buffer_lock:
+            if not self._log_buffer:
+                return
+
+            # Copy buffer before attempting write to prevent data loss on failure
+            events_to_write = self._log_buffer.copy()
+
+        try:
+            with open(self.log_file, "a", encoding="utf-8") as f:
+                for event in events_to_write:
+                    try:
+                        f.write(json.dumps(event, ensure_ascii=False, default=str) + "\n")
+                    except (TypeError, ValueError) as e:
+                        # If serialization fails, write error placeholder
+                        f.write(json.dumps({
+                            "event": "serialization_error",
+                            "ts": datetime.now().isoformat(),
+                            "error": str(e),
+                            "original_event_type": event.get("event", "unknown")
+                        }) + "\n")
+
+            # Only clear buffer after successful write
+            with self._buffer_lock:
+                # Remove only the events we successfully wrote
+                # (in case new events were added during write)
+                self._log_buffer = [e for e in self._log_buffer if e not in events_to_write]
+
+        except IOError as e:
+            # On I/O error, keep buffer intact for retry
+            # Log to stderr as fallback (best effort)
+            import sys
+            print(f"Warning: Failed to flush logs to {self.log_file}: {e}", file=sys.stderr)
 
 
 # Global logger instance for current session (thread-safe)
@@ -349,6 +400,8 @@ def log_event(event_type: str, data: dict) -> None:
     """Convenience function to log to current session if active (thread-safe)."""
     with _logger_lock:
         if _current_logger:
+            # Call _write_event while holding the lock to prevent race conditions
+            # where logger could be set to None between check and write
             _current_logger._write_event(event_type, data)
 
 
@@ -384,7 +437,21 @@ def analyze_logs(limit: int = 10) -> dict[str, Any]:
 
     for log_file in log_files:
         session_data = {"file": log_file.name, "events": []}
-        for line in log_file.read_text(encoding="utf-8").splitlines():
+        try:
+            file_content = log_file.read_text(encoding="utf-8")
+        except (IOError, OSError) as e:
+            # Skip corrupted or unreadable files
+            session_data["events"].append({
+                "event": "file_read_error",
+                "error": str(e)
+            })
+            sessions.append(session_data)
+            continue
+
+        for line in file_content.splitlines():
+            if not line.strip():
+                continue
+
             try:
                 event = json.loads(line)
                 session_data["events"].append(event)
@@ -399,6 +466,7 @@ def analyze_logs(limit: int = 10) -> dict[str, Any]:
                     session_data["summary"] = event
 
             except json.JSONDecodeError:
+                # Skip malformed JSON lines
                 continue
 
         sessions.append(session_data)
@@ -413,9 +481,15 @@ def analyze_logs(limit: int = 10) -> dict[str, Any]:
     total_rejections = sum(
         s.get("summary", {}).get("corrections_rejected", 0) for s in sessions
     )
-    avg_confidence = sum(
-        s.get("summary", {}).get("avg_confidence", 0) for s in sessions
-    ) / len(sessions) if sessions else 0
+
+    # Safe average calculation
+    sessions_with_summary = [s for s in sessions if "summary" in s]
+    if sessions_with_summary:
+        avg_confidence = sum(
+            s.get("summary", {}).get("avg_confidence", 0) for s in sessions_with_summary
+        ) / len(sessions_with_summary)
+    else:
+        avg_confidence = 0
 
     # Find most common low-confidence words
     word_counts: dict[str, int] = {}
@@ -423,14 +497,18 @@ def analyze_logs(limit: int = 10) -> dict[str, Any]:
         word_counts[word] = word_counts.get(word, 0) + 1
     common_low_conf = sorted(word_counts.items(), key=lambda x: -x[1])[:20]
 
+    # Safe acceptance rate calculation
+    total_correction_attempts = total_corrections + total_rejections
+    acceptance_rate = None
+    if total_correction_attempts > 0:
+        acceptance_rate = round(total_corrections / total_correction_attempts * 100, 1)
+
     return {
         "sessions_analyzed": len(sessions),
         "total_words_transcribed": total_words,
         "avg_confidence": round(avg_confidence, 3),
         "total_corrections": total_corrections,
         "total_rejections": total_rejections,
-        "acceptance_rate": round(
-            total_corrections / (total_corrections + total_rejections) * 100, 1
-        ) if (total_corrections + total_rejections) > 0 else None,
+        "acceptance_rate": acceptance_rate,
         "common_low_confidence_words": common_low_conf,
     }
