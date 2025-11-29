@@ -95,7 +95,7 @@ except ImportError:
     deduplicate_entities = None
 
 # Discovery pipeline (NER → Dictionary)
-from asr.dictionary.discovery import (
+from asr.dictionary.discovery import (  # noqa: E402
     DiscoveredNoun,
     DiscoveryResult,
     add_discovered_to_pending,
