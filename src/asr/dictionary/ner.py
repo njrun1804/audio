@@ -10,11 +10,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Literal
-
 # Supported entity types for proper noun extraction
 ENTITY_TYPES = ["person", "organization", "product", "location", "event"]
 

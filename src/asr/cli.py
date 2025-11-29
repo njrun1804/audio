@@ -165,7 +165,7 @@ def transcribe(
     ] = None,
     correct: Annotated[
         bool,
-        typer.Option("--correct", help="Apply ASR error correction via Claude Sonnet with thinking")
+        typer.Option("--correct", help="Apply ASR error correction via Claude Haiku 4.5 with thinking")
     ] = False,
     domain: Annotated[
         Optional[str],
@@ -295,25 +295,24 @@ def transcribe(
         try:
             from asr.dictionary import (
                 BiasListSelector,
-                DictionaryManager,
                 generate_whisper_prompt,
             )
 
-            manager = DictionaryManager()
-            selector = BiasListSelector(manager)
+            # BiasListSelector uses SQLite directly
+            selector = BiasListSelector()
 
             # Use explicit context or domain as context
             effective_context = config.dictionary_context or domain
 
             if effective_context or config.dictionary_auto_detect:
-                # Select entries for bias list
-                entries = selector.select(
-                    context=effective_context,
-                    max_entries=150,
-                )
+                # Select entries for bias list (uses selector's default max_entries=60)
+                entries = selector.select_bias_list(context=effective_context)
 
                 if entries:
-                    dictionary_prompt = generate_whisper_prompt(entries, max_tokens=200)
+                    # Pass context for meta-prompting (e.g., "This is a conversation about running...")
+                    dictionary_prompt = generate_whisper_prompt(
+                        entries, max_tokens=200, context=effective_context
+                    )
                     if dictionary_prompt:
                         console.print(f"[dim]Dictionary: {len(entries)} entries loaded for context '{effective_context or 'default'}'[/dim]")
 
@@ -505,6 +504,28 @@ def transcribe(
                 )
                 if added > 0:
                     console.print(f"[dim]Added {added} terms to pending vocabulary (review with 'asr vocab pending')[/dim]")
+
+            # Run NER discovery if available (discovers proper nouns and validates against ASR output)
+            try:
+                from asr.dictionary import _NER_AVAILABLE, discover_proper_nouns, add_discovered_to_pending
+                if _NER_AVAILABLE:
+                    discovery_result = discover_proper_nouns(
+                        segments=segments,
+                        source_file=file,
+                        min_confidence=0.7,
+                        context=effective_context or domain,
+                    )
+                    if discovery_result.discovered:
+                        pending_added, auto_approved = add_discovered_to_pending(
+                            discovery_result.discovered,
+                            context=effective_context or domain or "discovered",
+                        )
+                        if pending_added > 0 or auto_approved > 0:
+                            console.print(f"[dim]NER discovered {len(discovery_result.discovered)} proper nouns: {pending_added} pending, {auto_approved} auto-approved[/dim]")
+                        if discovery_result.rejected_hallucinations:
+                            console.print(f"[dim]Rejected {len(discovery_result.rejected_hallucinations)} hallucinations[/dim]")
+            except ImportError:
+                pass  # NER not installed
 
     # Build transcript
     transcript = Transcript(
@@ -990,6 +1011,261 @@ def vocab(
         raise typer.Exit(1)
 
 
+@app.command(name="dict")
+def dictionary(
+    action: Annotated[
+        str,
+        typer.Argument(help="Action: stats, pending, approve, reject, search, load, learn")
+    ],
+    term: Annotated[
+        Optional[str],
+        typer.Option("-t", "--term", help="Term to approve/reject/search")
+    ] = None,
+    context: Annotated[
+        Optional[str],
+        typer.Option("-c", "--context", help="Context for filtering/adding")
+    ] = None,
+    seeds_dir: Annotated[
+        Optional[Path],
+        typer.Option("--seeds", help="Directory with seed JSON files to load")
+    ] = None,
+):
+    """Manage the proper noun dictionary system.
+
+    The dictionary stores proper nouns with metadata (type, tier, aliases)
+    for context-aware transcription bias and correction.
+
+    NER discovery adds validated nouns to a pending queue.
+    Use 'pending', 'approve', 'reject' to manage them.
+
+    Examples:
+        asr dict stats                          # Show dictionary statistics
+        asr dict pending                        # Show pending discovered nouns
+        asr dict approve -t "Ron Chernow"       # Approve a pending noun
+        asr dict reject -t "hallucinated"       # Reject a pending noun
+        asr dict search -t "chernow"            # Search dictionary
+        asr dict load --seeds seeds/            # Load seed files
+        asr dict learn                          # Batch learn from session logs
+        asr dict learn -c biography             # Learn with context
+    """
+    from asr.dictionary import (
+        init_db,
+        get_pending_nouns,
+        approve_pending_noun,
+        reject_pending_noun,
+        search_entries,
+        import_from_json,
+        BiasListSelector,
+    )
+    from asr.dictionary.db import get_stats
+
+    init_db()
+
+    if action == "stats":
+        stats = get_stats()
+        console.print(f"[bold]Dictionary Statistics[/bold]")
+        console.print(f"  Total entries: {stats.total_entries}")
+        console.print(f"  By tier:")
+        for tier, count in sorted(stats.entries_by_tier.items()):
+            console.print(f"    {tier}: {count}")
+        if stats.entries_by_type:
+            console.print(f"  By type:")
+            for t, count in sorted(stats.entries_by_type.items()):
+                console.print(f"    {t}: {count}")
+
+        # Show pending count
+        pending = get_pending_nouns()
+        if pending:
+            console.print(f"\n  [yellow]Pending approval: {len(pending)}[/yellow]")
+            console.print(f"  [dim]Review with: asr dict pending[/dim]")
+
+    elif action == "pending":
+        pending = get_pending_nouns()
+        if not pending:
+            console.print("[dim]No pending discovered nouns.[/dim]")
+            console.print("[dim]Run 'asr transcribe --correct --learn' to discover proper nouns.[/dim]")
+            return
+
+        console.print(f"[bold]Pending Discovered Nouns[/bold] ({len(pending)} total)")
+        for item in sorted(pending, key=lambda x: -x.get("occurrences", 1)):
+            occurrences = item.get("occurrences", 1)
+            sources = item.get("sources", [])
+            validation = item.get("validation", "unknown")
+            console.print(f"  {item['text']} ({item['type']}) - {occurrences}x [{validation}]")
+            if sources:
+                console.print(f"    [dim]Sources: {', '.join(sources[:3])}[/dim]")
+
+        console.print()
+        console.print("[dim]Approve: asr dict approve -t \"term\"[/dim]")
+        console.print("[dim]Reject: asr dict reject -t \"term\"[/dim]")
+
+    elif action == "approve":
+        if not term:
+            _cli_error("--term required for approve")
+            raise typer.Exit(1)
+
+        if approve_pending_noun(term, context=context):
+            console.print(f"[green]Approved:[/green] {term}")
+        else:
+            console.print(f"[yellow]Not found in pending:[/yellow] {term}")
+
+    elif action == "reject":
+        if not term:
+            _cli_error("--term required for reject")
+            raise typer.Exit(1)
+
+        if reject_pending_noun(term):
+            console.print(f"[green]Rejected:[/green] {term}")
+        else:
+            console.print(f"[yellow]Not found in pending:[/yellow] {term}")
+
+    elif action == "search":
+        if not term:
+            _cli_error("--term required for search")
+            raise typer.Exit(1)
+
+        results = search_entries(term, limit=10)
+        if not results:
+            console.print(f"[dim]No matches for:[/dim] {term}")
+            return
+
+        console.print(f"[bold]Search Results for '{term}'[/bold]")
+        for result in results:
+            entry = result.entry
+            aliases = ", ".join(a.alias for a in entry.aliases[:3]) if entry.aliases else ""
+            console.print(f"  {entry.canonical} ({entry.type}, tier {entry.tier})")
+            if aliases:
+                console.print(f"    [dim]Aliases: {aliases}[/dim]")
+
+    elif action == "load":
+        seeds_path = seeds_dir or Path("seeds")
+        if not seeds_path.exists():
+            _cli_error("Seeds directory not found", str(seeds_path))
+            raise typer.Exit(1)
+
+        total = 0
+        for seed_file in sorted(seeds_path.glob("tier_*.json")):
+            count = import_from_json(seed_file)
+            console.print(f"  Loaded {seed_file.name}: {count} entries")
+            total += count
+
+        # Load context profiles
+        contexts_dir = seeds_path / "contexts"
+        if contexts_dir.exists():
+            import json
+            from asr.dictionary.models import ContextProfile
+            selector = BiasListSelector()
+            for ctx_file in contexts_dir.glob("*.json"):
+                with open(ctx_file) as f:
+                    profile = ContextProfile(**json.load(f))
+                selector.save_context_profile(profile)
+                console.print(f"  Loaded context: {profile.name}")
+
+        stats = get_stats()
+        console.print(f"\n[green]Total:[/green] {stats.total_entries} entries in dictionary")
+
+    elif action == "learn":
+        # Batch learning: process session logs to discover proper nouns
+        from asr.logging import LOGS_DIR
+        from asr.dictionary import _NER_AVAILABLE, discover_proper_nouns, add_discovered_to_pending
+
+        if not _NER_AVAILABLE:
+            _cli_error("NER required for learning", "Install with: pip install asr[ner]")
+            raise typer.Exit(1)
+
+        if not LOGS_DIR.exists():
+            console.print("[dim]No logs found. Run some transcriptions first.[/dim]")
+            return
+
+        # Process recent log files
+        import json as json_mod
+        from asr.models.transcript import Segment
+
+        log_files = sorted(LOGS_DIR.glob("session_*.jsonl"), reverse=True)[:20]  # Last 20 sessions
+        console.print(f"[bold]Processing {len(log_files)} session logs for proper nouns...[/bold]")
+
+        total_discovered = 0
+        total_added = 0
+        total_auto_approved = 0
+
+        for log_file in log_files:
+            # Parse log file to extract corrected segments
+            segments = []
+            original_words: set[str] = set()
+
+            with open(log_file) as f:
+                for line in f:
+                    try:
+                        event = json_mod.loads(line)
+                    except json_mod.JSONDecodeError:
+                        continue
+
+                    # Extract corrected text from correction_applied events
+                    if event.get("event") == "correction_applied":
+                        seg_data = event.get("data", {})
+                        if "corrected_text" in seg_data:
+                            # Create a minimal Segment for NER
+                            seg = Segment(
+                                id=seg_data.get("segment_id", 0),
+                                start=0.0,
+                                end=0.0,
+                                text=seg_data["corrected_text"],
+                                confidence=0.9,
+                            )
+                            segments.append(seg)
+
+                    # Extract original words from chunk_transcribed events
+                    if event.get("event") == "chunk_transcribed":
+                        words_data = event.get("data", {}).get("words", [])
+                        for w in words_data:
+                            word = w.get("word", "")
+                            if word:
+                                original_words.add(word.lower().strip())
+
+            if not segments:
+                continue
+
+            # Run discovery (skip session frequency check for batch mode)
+            try:
+                result = discover_proper_nouns(
+                    segments=segments,
+                    source_file=log_file.name,
+                    min_confidence=0.6,  # Lower threshold for batch
+                    context=context or "discovered",
+                    require_session_frequency=False,  # Don't require 2+ in single session
+                )
+
+                total_discovered += len(result.discovered)
+
+                if result.discovered:
+                    added, auto_approved = add_discovered_to_pending(
+                        result.discovered,
+                        context=context or "discovered",
+                    )
+                    total_added += added
+                    total_auto_approved += auto_approved
+
+                    for noun in result.discovered:
+                        console.print(f"  [green]+[/green] {noun.text} ({noun.entity_type})")
+                        if noun.snippet:
+                            console.print(f"      [dim]\"{noun.snippet[:80]}...\"[/dim]")
+
+            except Exception as e:
+                console.print(f"[dim]Error processing {log_file.name}: {e}[/dim]")
+
+        console.print()
+        console.print(f"[bold]Batch Learning Complete[/bold]")
+        console.print(f"  Discovered: {total_discovered} proper nouns")
+        console.print(f"  Added to pending: {total_added}")
+        console.print(f"  Auto-approved: {total_auto_approved}")
+        if total_added > 0:
+            console.print(f"\n[dim]Review pending: asr dict pending[/dim]")
+
+    else:
+        _cli_error("Unknown action", f"'{action}' (valid: stats, pending, approve, reject, search, load, learn)")
+        raise typer.Exit(1)
+
+
 @app.command()
 def logs(
     sessions: Annotated[
@@ -1091,13 +1367,27 @@ def evaluate(
         bool,
         typer.Option("--download-only", help="Only download dataset, don't run evaluation")
     ] = False,
+    no_words: Annotated[
+        bool,
+        typer.Option("--no-words", help="Skip word-level timestamps (~20% faster)")
+    ] = False,
+    warm_up: Annotated[
+        bool,
+        typer.Option("--warm-up", help="Pre-compile Metal kernels before evaluation")
+    ] = False,
+    stories: Annotated[
+        Optional[str],
+        typer.Option("--stories", "-s", help="Comma-separated story slugs to evaluate (e.g., 'dagon,the_outsider')")
+    ] = None,
 ):
     """Evaluate ASR accuracy against reference texts.
 
     Examples:
         asr evaluate lovecraft                    # Run Lovecraft benchmark
+        asr evaluate lovecraft --stories dagon   # Run just Dagon
         asr evaluate lovecraft --download-only   # Just download test files
         asr evaluate lovecraft --correct         # Include correction in WER comparison
+        asr evaluate lovecraft --no-words        # Faster evaluation without word timestamps
         asr evaluate audio.mp3 -r reference.txt  # Custom audio with reference
     """
     from asr.eval.metrics import calculate_wer
@@ -1107,6 +1397,13 @@ def evaluate(
         download_lovecraft_dataset,
         get_lovecraft_reference,
     )
+    from asr.dictionary import (
+        BiasListSelector,
+        generate_whisper_prompt,
+        generate_correction_block,
+        init_db,
+    )
+    from asr.dictionary.db import get_stats
 
     # Handle built-in datasets
     if dataset.lower() == "lovecraft":
@@ -1123,95 +1420,159 @@ def evaluate(
         total_ref_words = 0
         total_errors = 0
 
-        for story in LOVECRAFT_STORIES:
-            audio_path = data_dir / f"{story.slug}.ogg"
-            if not audio_path.exists():
-                console.print(f"[yellow]Skipping {story.name} (not downloaded)[/yellow]")
-                continue
+        # Load config and engine ONCE, outside the loop
+        config = load_config()
+        word_timestamps = not no_words
 
-            console.print(f"\n[bold]Evaluating: {story.name}[/bold]")
-            console.print(f"[dim]Duration: {story.duration_minutes:.1f} min | Difficulty: {story.difficulty}[/dim]")
+        if warm_up:
+            console.print("[dim]Warming up Metal kernels...[/dim]")
+        engine = get_crisperwhisper_engine(warm_up=warm_up)
 
-            # Get reference text
-            ref_text = get_lovecraft_reference(story.slug, cache_dir=data_dir / "references")
-            if not ref_text:
-                console.print("[yellow]  Could not fetch reference text[/yellow]")
-                continue
+        # Initialize dictionary once
+        init_db()
+        stats = get_stats()
 
-            # Transcribe
-            console.print("  Transcribing...")
-            config = load_config()
-            engine = get_crisperwhisper_engine()
+        import time  # Import once, outside loop
+        from concurrent.futures import ThreadPoolExecutor, Future
 
-            import time
-            start = time.time()
-
-            # Build prompt with Lovecraft vocabulary
+        # Build vocab prompt once (same for all stories)
+        if stats.total_entries > 0:
+            selector = BiasListSelector()
+            dict_entries = selector.select_bias_list(context="lovecraft", max_entries=50)
+            if dict_entries:
+                vocab_prompt = generate_whisper_prompt(dict_entries, context="lovecraft")
+                console.print(f"[dim]Using dictionary: {len(dict_entries)} entries[/dim]")
+            else:
+                vocab_prompt = "Names: " + ", ".join(LOVECRAFT_VOCABULARY[:20])
+                dict_entries = []
+        else:
             vocab_prompt = "Names: " + ", ".join(LOVECRAFT_VOCABULARY[:20])
+            dict_entries = []
+
+        # Parse --stories filter
+        story_filter = set(s.strip().lower() for s in stories.split(",")) if stories else None
+
+        # Filter to valid stories upfront
+        valid_stories = []
+        for story in LOVECRAFT_STORIES:
+            # Apply --stories filter
+            if story_filter and story.slug.lower() not in story_filter:
+                continue
+
+            ext = ".ogg" if story.audio_url.endswith(".ogg") else ".mp3"
+            audio_path = data_dir / f"{story.slug}{ext}"
+            if audio_path.exists():
+                valid_stories.append((story, audio_path))
+            else:
+                console.print(f"[yellow]Skipping {story.name} (not downloaded)[/yellow]")
+
+        # Pipeline: prepare next file's audio while current file transcribes
+        def prepare_story(story_tuple):
+            """Prepare audio and fetch reference in background."""
+            story, audio_path = story_tuple
+            ref_text = get_lovecraft_reference(story.slug, cache_dir=data_dir / "references")
             chunks, duration = prepare_audio(audio_path, config)
-            all_segments = []
-            for chunk in chunks:
-                segments = engine.transcribe(
-                    audio=chunk,
-                    word_timestamps=True,
-                    language=config.language,
-                    initial_prompt=vocab_prompt,
-                )
-                all_segments.extend(segments)
+            return story, audio_path, ref_text, chunks, duration
 
-            raw_text = " ".join(seg.text for seg in merge_segments(all_segments))
-            transcription_time = time.time() - start
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            # Start preparing first story
+            pending_future: Future | None = None
+            if valid_stories:
+                pending_future = executor.submit(prepare_story, valid_stories[0])
 
-            # Calculate raw WER
-            wer_result = calculate_wer(ref_text, raw_text)
-            total_ref_words += wer_result.reference_words
-            total_errors += wer_result.substitutions + wer_result.insertions + wer_result.deletions
+            for i, (story, audio_path) in enumerate(valid_stories):
+                console.print(f"\n[bold]Evaluating: {story.name}[/bold]")
+                console.print(f"[dim]Duration: {story.duration_minutes:.1f} min | Difficulty: {story.difficulty}[/dim]")
 
-            console.print(f"  Time: {transcription_time:.1f}s | RTF: {duration/transcription_time:.1f}x")
-            console.print(f"  [bold]WER (raw): {wer_result.wer*100:.1f}%[/bold] ({wer_result.reference_words} words)")
+                # Get prepared data (blocks if not ready)
+                story, audio_path, ref_text, chunks, duration = pending_future.result()
 
-            result = {
-                "name": story.name,
-                "slug": story.slug,
-                "duration": duration,
-                "transcription_time": transcription_time,
-                "wer_raw": wer_result.wer,
-                "ref_words": wer_result.reference_words,
-            }
+                # Start preparing NEXT story while we transcribe this one
+                if i + 1 < len(valid_stories):
+                    pending_future = executor.submit(prepare_story, valid_stories[i + 1])
 
-            # Apply correction if requested
-            if correct:
-                from asr.nlp.corrector import Corrector
-                from asr.nlp.models import CorrectionConfig
+                if not ref_text:
+                    console.print("[yellow]  Could not fetch reference text[/yellow]")
+                    continue
 
-                console.print("  Applying correction...")
+                # Transcribe (GPU-bound, can't parallelize)
+                console.print(f"  Transcribing {len(chunks)} chunks...")
                 start = time.time()
 
-                correction_config = CorrectionConfig(
-                    passes=2,
-                    vocabulary=LOVECRAFT_VOCABULARY,
-                    domain="biography",
-                )
+                all_segments = []
+                for chunk_idx, chunk in enumerate(chunks):
+                    chunk_start = time.time()
+                    segments = engine.transcribe(
+                        audio=chunk,
+                        word_timestamps=word_timestamps,
+                        language=config.language,
+                        initial_prompt=vocab_prompt,
+                    )
+                    all_segments.extend(segments)
+                    chunk_time = time.time() - chunk_start
+                    console.print(f"    Chunk {chunk_idx + 1}/{len(chunks)}: {chunk_time:.1f}s", end="\r")
+                console.print()  # Clear the \r line
 
-                with Corrector(provider="claude", config=correction_config) as corrector:
-                    corrected_segments = corrector.correct(
-                        merge_segments(all_segments),
-                        vocabulary=LOVECRAFT_VOCABULARY,
+                raw_text = " ".join(seg.text for seg in merge_segments(all_segments))
+                transcription_time = time.time() - start
+
+                # Calculate raw WER
+                wer_result = calculate_wer(ref_text, raw_text)
+                total_ref_words += wer_result.reference_words
+                total_errors += wer_result.substitutions + wer_result.insertions + wer_result.deletions
+
+                console.print(f"  Time: {transcription_time:.1f}s | RTF: {duration/transcription_time:.1f}x")
+                console.print(f"  [bold]WER (raw): {wer_result.wer*100:.1f}%[/bold] ({wer_result.reference_words} words)")
+
+                result = {
+                    "name": story.name,
+                    "slug": story.slug,
+                    "duration": duration,
+                    "transcription_time": transcription_time,
+                    "wer_raw": wer_result.wer,
+                    "ref_words": wer_result.reference_words,
+                }
+
+                # Apply correction if requested
+                if correct:
+                    from asr.nlp.corrector import Corrector
+                    from asr.nlp.models import CorrectionConfig
+
+                    console.print("  Applying correction...")
+                    start = time.time()
+
+                    # Use dictionary entries for correction if available
+                    correction_vocab = LOVECRAFT_VOCABULARY
+                    if dict_entries:
+                        correction_vocab = [e.canonical for e in dict_entries] + LOVECRAFT_VOCABULARY
+                        correction_vocab = list(dict.fromkeys(correction_vocab))  # Dedupe preserving order
+
+                    correction_config = CorrectionConfig(
+                        passes=2,
+                        vocabulary=correction_vocab,
                         domain="biography",
                     )
 
-                corrected_text = " ".join(seg.text for seg in corrected_segments)
-                correction_time = time.time() - start
+                    with Corrector(provider="claude", config=correction_config) as corrector:
+                        corrected_segments = corrector.correct(
+                            merge_segments(all_segments),
+                            vocabulary=correction_vocab,
+                            domain="biography",
+                            dictionary_context="lovecraft",  # Pass dictionary context
+                        )
 
-                wer_corrected = calculate_wer(ref_text, corrected_text)
-                improvement = (wer_result.wer - wer_corrected.wer) * 100
+                    corrected_text = " ".join(seg.text for seg in corrected_segments)
+                    correction_time = time.time() - start
 
-                console.print(f"  [bold]WER (corrected): {wer_corrected.wer*100:.1f}%[/bold] ({improvement:+.1f}% improvement)")
-                result["wer_corrected"] = wer_corrected.wer
-                result["correction_time"] = correction_time
-                result["wer_improvement"] = improvement
+                    wer_corrected = calculate_wer(ref_text, corrected_text)
+                    improvement = (wer_result.wer - wer_corrected.wer) * 100
 
-            results.append(result)
+                    console.print(f"  [bold]WER (corrected): {wer_corrected.wer*100:.1f}%[/bold] ({improvement:+.1f}% improvement)")
+                    result["wer_corrected"] = wer_corrected.wer
+                    result["correction_time"] = correction_time
+                    result["wer_improvement"] = improvement
+
+                results.append(result)
 
         # Summary
         if results:

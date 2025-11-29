@@ -134,22 +134,35 @@ class AudioEnhancementConfig(BaseModel):
 
 
 class VADConfig(BaseModel):
-    """Voice Activity Detection settings for better segmentation."""
+    """Voice Activity Detection settings for better segmentation.
 
-    # VAD confidence threshold (lower = more sensitive, catches softer speech)
-    threshold: float = 0.35  # Default 0.5 is too aggressive
+    TUNED FOR THROUGHPUT: These defaults prioritize fewer, larger chunks.
+    CrisperWhisper handles 60s chunks well - excessive splitting kills performance
+    due to MLX GPU setup overhead per chunk.
+
+    For 15-min audio: expect ~15-25 chunks (not 100+).
+    """
+
+    # VAD confidence threshold (higher = less sensitive, fewer false splits)
+    # 0.45 ignores brief noises while catching real speech
+    threshold: float = 0.45  # Was 0.35 - too sensitive
 
     # Minimum speech duration to keep (filters noise spikes)
     min_speech_duration: float = 0.25  # 250ms
 
     # Minimum silence duration to split on (higher = more merging)
-    min_silence_duration: float = 0.3  # 300ms (was 500ms - too aggressive)
+    # 500ms requires a real pause, not just breathing
+    min_silence_duration: float = 0.5  # Was 0.3 - split too eagerly
 
     # Padding added to each segment boundary (catches word onsets/offsets)
-    boundary_pad: float = 0.2  # 200ms safety margin
+    boundary_pad: float = 0.15  # Was 0.2 - reduced overhead
 
     # Overlap between consecutive VAD segments (prevents chopped words)
-    inter_segment_overlap: float = 0.25  # 250ms overlap at segment joins
+    inter_segment_overlap: float = 0.2  # Was 0.25 - reduced overhead
+
+    # Post-VAD merging: merge small chunks up to this target
+    # Reduces chunk count without exceeding max_chunk_seconds
+    min_chunk_duration: float = 20.0  # Merge chunks under 20s with neighbors
 
 
 class CorrectionConfig(BaseModel):

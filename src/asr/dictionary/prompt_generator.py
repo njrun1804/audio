@@ -36,20 +36,25 @@ def estimate_tokens(text: str) -> int:
 def generate_whisper_prompt(
     entries: list[EntryWithRelations],
     max_tokens: int = 200,
+    context: str | None = None,
 ) -> str:
     """Generate Whisper initial_prompt from dictionary entries.
 
-    Creates a formatted prompt that biases Whisper toward recognizing
-    specific proper nouns and terms. Groups entries by type for readability
-    and prioritizes by boost_weight.
+    Creates a context-setting "meta" prompt that biases Whisper toward
+    recognizing specific proper nouns and terms. Uses natural language
+    framing rather than just listing terms.
 
-    Format:
-        "In this conversation, you may hear: [People: X, Y] [Products: A, B] [Terms: C, D]..."
+    Format (with context):
+        "This is a conversation about running. You may hear terms like: Strava, Garmin, VO2max..."
+
+    Format (no context):
+        "You may hear proper nouns: [People: X, Y] [Products: A, B]..."
 
     Args:
         entries: List of dictionary entries to include in the prompt.
         max_tokens: Maximum token budget for the prompt (Whisper limit ~224).
             Default is 200 to leave headroom.
+        context: Optional context name for meta-prompting (e.g., "running", "work").
 
     Returns:
         Formatted prompt string suitable for Whisper's initial_prompt parameter.
@@ -73,9 +78,27 @@ def generate_whisper_prompt(
         type_label = _get_type_label(entry.type)
         type_groups[type_label].append((canonical, key_aliases))
 
+    # Build context-aware meta prefix
+    context_prefixes = {
+        "running": "This is a conversation about running and fitness.",
+        "work": "This is a discussion about pharmaceutical quality systems.",
+        "asr_dev": "This is a technical discussion about speech recognition.",
+        "cycling": "This is a conversation about cycling and biking.",
+        "tech": "This is a technical discussion about software development.",
+        "medical": "This is a medical conversation. Be precise with terminology.",
+        "finance": "This is a discussion about finance and investing.",
+        "lovecraft": "This is a reading of H.P. Lovecraft cosmic horror fiction.",
+        "biography": "This is biographical content with historical names and places.",
+    }
+
+    if context and context in context_prefixes:
+        prefix = f"{context_prefixes[context]} You may hear:"
+    else:
+        prefix = "You may hear proper nouns:"
+
     # Build the prompt, respecting token budget
     parts: list[str] = []
-    current_tokens = estimate_tokens("In this conversation, you may hear: ")
+    current_tokens = estimate_tokens(prefix + " ")
 
     # Priority order for type groups
     type_priority = [
@@ -141,7 +164,7 @@ def generate_whisper_prompt(
     if not parts:
         return ""
 
-    return f"In this conversation, you may hear: {' '.join(parts)}"
+    return f"{prefix} {' '.join(parts)}"
 
 
 def _get_type_label(entry_type: str) -> str:
@@ -207,7 +230,10 @@ def generate_correction_block(
 
     # Build markdown table
     lines: list[str] = [
-        "## Known Proper Nouns (use these exact spellings when correcting)",
+        "## Vocabulary Hints (SUGGESTIONS ONLY - not guaranteed to appear)",
+        "",
+        "These terms MAY appear in this transcript. They are hints, not facts.",
+        "Only apply a term if the ASR output contains a NEAR-MISS (phonetic match or close spelling).",
         "",
         "| Term | Type | Aliases | Notes |",
         "|------|------|---------|-------|",
@@ -235,11 +261,14 @@ def generate_correction_block(
 
         lines.append(f"| {canonical} | {entry_type} | {aliases_str} | {notes_str} |")
 
-    # Add guidance footer
+    # Add guidance footer with near-miss constraint
     lines.extend([
         "",
-        "When you see text that sounds like one of these terms, use the canonical spelling.",
-        "Only substitute if confident - do not force-fit.",
+        "NEAR-MISS RULE:",
+        "- ONLY apply a vocabulary term if the raw ASR contains a phonetically similar word",
+        "- Example: 'Soon toe' → 'Suunto' (sounds similar) ✓",
+        "- Example: 'shoe' → 'Suunto' (no phonetic match) ✗",
+        "- When in doubt, keep the original ASR text",
     ])
 
     return "\n".join(lines)
@@ -264,6 +293,7 @@ def generate_combined_prompt(
     entries: list[EntryWithRelations],
     whisper_max_tokens: int = 200,
     correction_max_entries: int = 100,
+    context: str | None = None,
 ) -> tuple[str, str]:
     """Generate both Whisper prompt and correction block.
 
@@ -274,11 +304,12 @@ def generate_combined_prompt(
         entries: List of dictionary entries to use.
         whisper_max_tokens: Token budget for Whisper prompt.
         correction_max_entries: Maximum entries for correction block.
+        context: Optional context name for meta-prompting.
 
     Returns:
         Tuple of (whisper_prompt, correction_block).
     """
-    whisper_prompt = generate_whisper_prompt(entries, max_tokens=whisper_max_tokens)
+    whisper_prompt = generate_whisper_prompt(entries, max_tokens=whisper_max_tokens, context=context)
     correction_block = generate_correction_block(entries, max_entries=correction_max_entries)
     return whisper_prompt, correction_block
 

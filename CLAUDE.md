@@ -29,7 +29,6 @@ asr transcribe file.m4a -o output.vtt
 
 # Post-processing correction (requires ANTHROPIC_API_KEY)
 asr transcribe file.m4a --correct --domain biography      # With domain-specific prompts
-asr transcribe file.m4a --correct --quality max           # Opus final pass
 asr transcribe file.m4a --correct --learn --domain tech   # Learn vocabulary
 
 # Audio enhancement options
@@ -137,27 +136,32 @@ The VAD system detects speech segments and splits audio into chunks for transcri
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `threshold` | 0.35 | VAD confidence threshold (lower = more sensitive) |
+| `threshold` | 0.45 | VAD confidence threshold (higher = fewer false splits) |
 | `min_speech_duration` | 0.25s | Minimum speech segment to keep |
-| `min_silence_duration` | 0.3s | Minimum silence to split on |
-| `boundary_pad` | 0.2s | Padding added to segment boundaries |
-| `inter_segment_overlap` | 0.25s | Overlap between consecutive segments |
+| `min_silence_duration` | 0.5s | Minimum silence to split on (requires real pause) |
+| `boundary_pad` | 0.15s | Padding added to segment boundaries |
+| `inter_segment_overlap` | 0.2s | Overlap between consecutive segments |
+| `min_chunk_duration` | 20s | Merge chunks shorter than this with neighbors |
 
 ### How It Works
 
 1. **Silero VAD** detects speech vs. silence
-2. **Boundary padding** (200ms) catches word onsets/offsets
-3. **Inter-segment overlap** (250ms) prevents chopped words at VAD boundaries
-4. **Long segment splitting** (>60s) uses 2s overlap for context continuity
+2. **Post-VAD merging** combines small chunks to reduce GPU overhead
+3. **Boundary padding** (150ms) catches word onsets/offsets
+4. **Inter-segment overlap** (200ms) prevents chopped words at VAD boundaries
+5. **Long segment splitting** (>60s) uses 2s overlap for context continuity
+
+**Performance**: For 15-min audio, expect ~15-25 chunks (not 100+). Each chunk has MLX GPU setup overhead, so fewer chunks = faster processing.
 
 Configure in `~/.asr/config.toml`:
 ```toml
 [vad]
-threshold = 0.35
+threshold = 0.45
 min_speech_duration = 0.25
-min_silence_duration = 0.3
-boundary_pad = 0.2
-inter_segment_overlap = 0.25
+min_silence_duration = 0.5
+boundary_pad = 0.15
+inter_segment_overlap = 0.2
+min_chunk_duration = 20.0
 ```
 
 ## Resource Profiles
@@ -207,8 +211,11 @@ Two-pass Claude-powered ASR error correction with safety constraints to prevent 
 
 | Pass | Model | Purpose |
 |------|-------|---------|
-| Pass 1 | Sonnet 4.5 | Fix errors inside `<low_conf>` regions only |
-| Pass 2 | Sonnet 4.5 (or Opus 4.5) | Ensure entity consistency |
+| Pass 1 | Haiku 4.5 | Fix errors inside `<low_conf>` regions only |
+| Pass 2 | Haiku 4.5 | Ensure entity consistency |
+| Kicker | Sonnet 4.5 (thinking) | Final polish with extended thinking (8K budget) |
+
+**Architecture rationale**: Haiku 4.5 is 4-5x faster than Sonnet for pattern-matching ASR corrections. The final "kicker" pass with Sonnet 4.5 extended thinking catches subtle issues that fast passes miss, using full transcript context for deep reasoning.
 
 ### Options
 
@@ -216,16 +223,15 @@ Two-pass Claude-powered ASR error correction with safety constraints to prevent 
 |--------|-------------|
 | `--correct` | Enable correction pipeline |
 | `--domain <name>` | Domain context: biography, technical, medical, legal, conversational |
-| `--quality max` | Use Opus 4.5 for final pass |
 | `--passes 1` | Single pass only (faster, cheaper) |
 | `--learn` | Learn vocabulary from corrections (adds to pending) |
 
 ### Cost Estimate
 
-| Quality | Model | Cost per 20-min transcript |
-|---------|-------|---------------------------|
-| standard | Sonnet 4.5 (both passes) | ~$0.07 |
-| max | Sonnet + Opus final | ~$0.20 |
+| Mode | Model | Cost per 20-min transcript |
+|------|-------|---------------------------|
+| default | Haiku 4.5 (2 passes) + Sonnet kicker | ~$0.03-0.05 |
+| `--passes 1` | Haiku 4.5 only (no kicker) | ~$0.01 |
 
 ## Vocabulary Management
 
@@ -338,19 +344,52 @@ Seed files are in `seeds/tier_*.json`. Context profiles in `seeds/contexts/`.
 ### How It Works
 
 1. **BiasListSelector** scores entries: `score = boost_weight × tier_weight × recency × context_match`
-2. **Top entries** (default 150) become Whisper `initial_prompt`
-3. **Correction block** (top 100) passed to Claude as known spellings
+2. **Top 60 entries** become Whisper `initial_prompt` with context-aware meta-prompting
+3. **Correction block** passed to Claude as vocabulary HINTS (not facts) with near-miss rule
 4. **CandidateMatcher** uses RapidFuzz + Double Metaphone for fuzzy matching
+5. **Phonetic Anchoring** validates corrections before applying
+
+### Anti-Hallucination Measures
+
+| Layer | Mechanism |
+|-------|-----------|
+| **Top-K Filtering** | Only 60 terms (not all 396) to prevent model confusion |
+| **Meta-Prompting** | "This is a conversation about running..." instead of just term lists |
+| **Soft Instructions** | Dictionary terms are HINTS, not guaranteed to appear |
+| **Near-Miss Rule** | Claude only applies terms if ASR has phonetically similar word |
+| **Phonetic Anchoring** | Code validates edit distance / metaphone match before applying |
+| **Weirdness Filters** | Discovered nouns must: be 4+ chars, not common word, appear 2+ times |
+| **Snippet Context** | Pending nouns show sentence context for faster review |
+
+### Batch Learning
+
+Process session logs overnight to discover proper nouns:
+
+```bash
+# Learn from recent session logs
+asr dict learn
+
+# Learn with specific context
+asr dict learn -c biography
+```
+
+This runs NER on corrected text from past sessions, validates against original ASR output,
+and adds validated nouns to the pending queue for review.
 
 ### Optional Dependencies
 
 ```bash
-# NER for auto-discovering proper nouns (GLiNER + spaCy with Apple Silicon optimization)
+# NER for auto-discovering proper nouns (GLiNER - uses ONNX, works great on M4)
 pip install -e ".[ner]"
+
+# NER with spaCy (if you need spaCy's entity recognition)
+pip install -e ".[ner-spacy]"
 
 # Grapheme-to-phoneme for generating pronunciations
 pip install -e ".[g2p]"
 ```
+
+**Note on Python 3.13**: `thinc-apple-ops` (Apple Silicon optimization for spaCy) has Cython build issues with Python 3.13. GLiNER uses ONNX runtime which runs efficiently on M4 without it. If you need spaCy with full M4 optimization, use Python 3.12.
 
 When NER is installed, you can discover proper nouns from transcripts:
 ```python
@@ -369,6 +408,10 @@ This tool implements multiple safeguards against ASR correction hallucinations:
 4. **Vocabulary Gating**: Learned terms must appear in original ASR output
 5. **Manual Approval**: New vocabulary requires review before use
 6. **Configurable Aggressiveness**: Conservative/moderate/aggressive correction levels
+7. **Phonetic Anchoring**: Dictionary corrections require phonetic/edit-distance match to original
+8. **Soft Dictionary Instructions**: Terms are hints, not facts - Claude must apply near-miss rule
+9. **Weirdness Filters**: Discovered nouns must pass length, common-word, and frequency checks
+10. **Top-K Filtering**: Only 60 dictionary terms per session to prevent model confusion
 
 ## Internal Architecture
 

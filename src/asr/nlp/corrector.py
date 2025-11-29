@@ -15,10 +15,13 @@ from asr.nlp.models import (
     CorrectionChange,
     CorrectionConfig,
     CorrectionResult,
+    KickerResult,
     Pass1Result,
     Pass2Result,
 )
 from asr.nlp.prompts import (
+    KICKER_SYSTEM,
+    KICKER_USER,
     PASS1_USER,
     PASS2_SYSTEM,
     PASS2_USER,
@@ -27,6 +30,7 @@ from asr.nlp.prompts import (
     format_transcript_for_pass2,
     get_pass1_system_prompt,
     validate_correction,
+    validate_phonetic_anchoring,
 )
 
 # API retry configuration
@@ -101,6 +105,7 @@ class Corrector:
         max_tokens: int = 4096,
         temperature: float | None = None,
         use_thinking: bool | None = None,
+        thinking_budget: int | None = None,
     ) -> tuple[str | None, str | None]:
         """Make API call with retry logic for transient failures.
 
@@ -111,6 +116,7 @@ class Corrector:
             max_tokens: Maximum response tokens
             temperature: Sampling temperature (0.0 = deterministic, reduces hallucinations)
             use_thinking: Enable extended thinking for complex reasoning
+            thinking_budget: Token budget for thinking (uses config default if None)
 
         Returns:
             (response_text, error_message): Either the response text or an error message
@@ -122,12 +128,14 @@ class Corrector:
             temperature = self.config.temperature
         if use_thinking is None:
             use_thinking = self.config.use_extended_thinking
+        if thinking_budget is None:
+            thinking_budget = self.config.thinking_budget_tokens
 
         last_error = None
         for attempt in range(MAX_RETRIES):
             try:
                 # When using extended thinking, max_tokens must exceed budget_tokens
-                thinking_budget = max(1024, self.config.thinking_budget_tokens)
+                thinking_budget = max(1024, thinking_budget)
                 effective_max_tokens = max_tokens
                 if use_thinking:
                     # max_tokens must be > thinking budget, add buffer for response
@@ -249,13 +257,12 @@ class Corrector:
             try:
                 from asr.dictionary import (
                     BiasListSelector,
-                    DictionaryManager,
                     generate_correction_block,
                 )
 
-                manager = DictionaryManager()
-                selector = BiasListSelector(manager)
-                dictionary_entries = selector.select(
+                # BiasListSelector uses SQLite directly - no DictionaryManager needed
+                selector = BiasListSelector()
+                dictionary_entries = selector.select_bias_list(
                     context=dictionary_context,
                     max_entries=dictionary_entries_limit,
                 )
@@ -288,8 +295,9 @@ class Corrector:
                 segments_modified=len(pass1_changes),
             )
 
-        # Pass 2: Consistency (if configured)
-        if self.config.passes >= 2:
+        # Pass 2: Consistency (if configured and pass 1 made changes)
+        # Skip pass 2 if pass 1 found nothing - consistency check is pointless
+        if self.config.passes >= 2 and pass1_changes:
             segments, pass2_result = self._run_pass2(
                 segments, all_vocab, effective_domain, pass1_changes
             )
@@ -319,6 +327,34 @@ class Corrector:
                     segments_modified=len(pass2_result.consistency_fixes),
                 )
 
+        # Final kicker pass: Sonnet/Opus with thinking (if enabled)
+        if self.config.use_kicker:
+            segments, kicker_result = self._run_kicker(
+                segments, all_vocab, effective_domain
+            )
+
+            # Apply kicker fixes to result
+            for fix in kicker_result.final_fixes:
+                if fix.segment_id not in result.changes_by_segment:
+                    result.changes_by_segment[fix.segment_id] = []
+                result.changes_by_segment[fix.segment_id].append(
+                    CorrectionChange(
+                        original=fix.original,
+                        corrected=fix.corrected,
+                        reason=f"kicker: {fix.reason}",
+                    )
+                )
+                result.total_changes += 1
+
+            # Log kicker completion
+            logger = get_logger()
+            if logger:
+                logger.log_pass_complete(
+                    pass_number=3,  # Kicker is pass 3
+                    model=self.config.kicker_model,
+                    segments_modified=len(kicker_result.final_fixes),
+                )
+
         return segments
 
     def _run_pass1(
@@ -334,11 +370,22 @@ class Corrector:
         corrected_texts: dict[int, str] = {}  # Track corrected text by segment ID
         dictionary_entries = dictionary_entries or []
 
+        # Build dictionary terms set for phonetic anchoring validation
+        dict_terms: set[str] | None = None
+        if dictionary_entries:
+            dict_terms = set()
+            for entry in dictionary_entries:
+                dict_terms.add(entry.canonical.lower())
+                if entry.display:
+                    dict_terms.add(entry.display.lower())
+                for alias in entry.aliases:
+                    dict_terms.add(alias.alias.lower())
+
         # Process in batches
         for i in range(0, len(segments), self.config.batch_size):
             batch = segments[i:i + self.config.batch_size]
             batch_changes, batch_texts = self._correct_batch(
-                batch, vocabulary, domain, dictionary_block
+                batch, vocabulary, domain, dictionary_block, dict_terms
             )
             changes_by_segment.update(batch_changes)
             corrected_texts.update(batch_texts)
@@ -374,11 +421,13 @@ class Corrector:
         vocabulary: list[str],
         domain: str,
         dictionary_block: str = "",
+        dictionary_terms: set[str] | None = None,
     ) -> tuple[dict[int, list[CorrectionChange]], dict[int, str]]:
         """Correct a batch of segments using Claude with safety constraints.
 
         Uses <low_conf> tags to mark uncertain regions and diff gating to reject
-        corrections that modify high-confidence text.
+        corrections that modify high-confidence text. Also validates phonetic
+        anchoring for dictionary term corrections.
         """
         # Format segments with <low_conf> tags around uncertain words
         # Include word-level confidence scores for better decision making
@@ -461,6 +510,41 @@ class Corrector:
                                 rejected = True
                                 break
 
+                        # PHONETIC ANCHORING: Validate dictionary term corrections
+                        # Only apply if each change has a phonetic "near-miss" in original
+                        valid_changes = []
+                        for c in seg_correction.changes:
+                            is_anchored, reason = validate_phonetic_anchoring(
+                                c.original,
+                                c.corrected,
+                                dictionary_terms=dictionary_terms,
+                            )
+                            if is_anchored:
+                                valid_changes.append(c)
+                            else:
+                                print(
+                                    f"Warning: Rejected change '{c.original}' → '{c.corrected}' "
+                                    f"- {reason}",
+                                    file=sys.stderr,
+                                )
+                                # Log rejection
+                                logger = get_logger()
+                                if logger:
+                                    logger.log_correction_rejected(
+                                        segment_id=seg.id,
+                                        reason="phonetic_anchoring",
+                                        violations=[reason] if reason else [],
+                                        details={
+                                            "original": c.original,
+                                            "corrected": c.corrected,
+                                        },
+                                    )
+
+                        # If all changes were rejected, skip this segment
+                        if not valid_changes and seg_correction.changes:
+                            rejected = True
+                            break
+
                         # Only apply if diff gating passed or is disabled
                         corrected_texts[seg.id] = seg_correction.corrected
                         changes_by_segment[seg.id] = [
@@ -469,7 +553,7 @@ class Corrector:
                                 corrected=c.corrected,
                                 reason=c.reason,
                             )
-                            for c in seg_correction.changes
+                            for c in valid_changes
                         ]
                         # Log successful correction
                         logger = get_logger()
@@ -585,6 +669,72 @@ class Corrector:
         except (ValueError, IndexError) as e:
             print(f"Warning: Failed to parse consistency response: {e}", file=sys.stderr)
             return segments, Pass2Result()
+
+    def _run_kicker(
+        self,
+        segments: list[Segment],
+        vocabulary: list[str],
+        domain: str,
+    ) -> tuple[list[Segment], KickerResult]:
+        """Run final kicker pass: Sonnet/Opus with extended thinking.
+
+        This is the final polish pass that uses deep reasoning to catch
+        any subtle issues missed by the fast Haiku passes.
+        """
+        # Format transcript
+        transcript_text = format_transcript_for_pass2(segments)
+        vocab_str = ", ".join(vocabulary) if vocabulary else "None provided"
+
+        user_prompt = KICKER_USER.format(
+            domain=domain,
+            vocabulary=vocab_str,
+            transcript_text=transcript_text,
+        )
+
+        # Call API with kicker model and THINKING enabled
+        response_text, error = self._call_api_with_retry(
+            model=self.config.kicker_model,
+            system=KICKER_SYSTEM,
+            user_content=user_prompt,
+            use_thinking=True,  # Enable extended thinking for deep analysis
+            thinking_budget=self.config.kicker_thinking_budget,
+        )
+
+        if error:
+            print(f"Warning: Kicker API call failed: {error}", file=sys.stderr)
+            return segments, KickerResult()
+
+        try:
+            # Extract JSON from response
+            json_str = self._extract_json_from_response(response_text)
+            result = KickerResult.model_validate_json(json_str.strip())
+
+            # Apply final fixes
+            fixes_by_segment = {fix.segment_id: fix for fix in result.final_fixes}
+
+            corrected_segments = []
+            for seg in segments:
+                fix_applied = fixes_by_segment.get(seg.id)
+
+                if fix_applied:
+                    corrected_seg = seg.model_copy(
+                        update={"text": fix_applied.corrected}
+                    )
+                    corrected_segments.append(corrected_seg)
+                else:
+                    corrected_segments.append(seg)
+
+            return corrected_segments, result
+
+        except json.JSONDecodeError as e:
+            print(f"Warning: Failed to parse kicker response (invalid JSON): {e}", file=sys.stderr)
+            return segments, KickerResult()
+        except ValidationError as e:
+            print(f"Warning: Kicker response doesn't match expected schema: {e}", file=sys.stderr)
+            return segments, KickerResult()
+        except (ValueError, IndexError) as e:
+            print(f"Warning: Failed to parse kicker response: {e}", file=sys.stderr)
+            return segments, KickerResult()
 
     def extract_learnable_terms(
         self,

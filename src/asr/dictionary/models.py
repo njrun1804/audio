@@ -16,15 +16,17 @@ TierLevel = Literal["A", "B", "C", "D", "E", "F", "G", "H"]
 
 
 # Tier weight mapping for scoring
+# Simplified to 3 effective tiers: critical (A), standard (B-D), low (E-H)
+# Keeps A-H for backward compatibility with existing data
 TIER_WEIGHTS: dict[str, float] = {
-    "A": 1.0,
-    "B": 0.9,
-    "C": 0.8,
-    "D": 0.7,
-    "E": 0.6,
-    "F": 0.5,
-    "G": 0.4,
-    "H": 0.3,
+    "A": 1.0,   # Critical - always on
+    "B": 0.7,   # Standard
+    "C": 0.7,   # Standard
+    "D": 0.7,   # Standard
+    "E": 0.4,   # Low priority
+    "F": 0.4,   # Low priority
+    "G": 0.4,   # Low priority
+    "H": 0.4,   # Low priority
 }
 
 

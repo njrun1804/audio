@@ -26,9 +26,14 @@ dev = [
     "ruff>=0.1",
 ]
 ner = [
-    "gliner>=0.2.20",  # Zero-shot NER for proper noun discovery
+    "gliner>=0.2.20",  # Zero-shot NER for proper noun discovery (uses ONNX, works on M4)
+]
+# NOTE: thinc-apple-ops has Cython build issues with Python 3.13
+# GLiNER uses ONNX runtime which works great on M4 without it
+ner-spacy = [
+    "gliner>=0.2.20",
     "spacy>=3.7",  # Production NER
-    "thinc-apple-ops>=1.0",  # Apple Silicon optimization
+    # "thinc-apple-ops>=1.0",  # Uncomment when Python 3.13 support lands
 ]
 g2p = [
     "g2p-en>=2.1.0",  # Grapheme-to-phoneme for pronunciations

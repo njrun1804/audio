@@ -4,7 +4,7 @@ This module provides the CandidateMatcher class for finding dictionary entries
 that might match ASR output text, using multiple matching strategies:
 - Exact matching (canonical and aliases)
 - Case-insensitive matching
-- Phonetic matching (Soundex, Double Metaphone)
+- Phonetic matching (Double Metaphone)
 - Edit distance matching (Levenshtein via rapidfuzz)
 """
 
@@ -14,7 +14,6 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-import jellyfish  # Kept for soundex (rapidfuzz doesn't have it)
 from metaphone import doublemetaphone
 from rapidfuzz import fuzz
 from rapidfuzz.distance import Levenshtein
@@ -52,9 +51,8 @@ class CandidateMatcher:
     Matching strategy priority:
     1. Exact match (canonical or alias) -> confidence 1.0
     2. Case-insensitive exact match -> confidence 0.95
-    3. Soundex match -> confidence 0.7 * (1 - edit_distance_ratio)
-    4. Metaphone match -> confidence 0.75 * (1 - edit_distance_ratio)
-    5. Edit distance < 3 -> confidence 0.6 * (1 - distance/max_len)
+    3. Metaphone match -> confidence 0.8 * similarity
+    4. Edit distance < 3 -> confidence 0.6 * (1 - distance/max_len)
     """
 
     def __init__(self, entries: list[EntryWithRelations]) -> None:
@@ -66,7 +64,6 @@ class CandidateMatcher:
         self.entries = entries
         self._canonical_lower: dict[str, EntryWithRelations] = {}
         self._alias_lower: dict[str, EntryWithRelations] = {}
-        self._soundex_index: dict[str, list[tuple[str, EntryWithRelations]]] = {}
         # Double Metaphone indexes: primary and alternate codes
         self._metaphone_primary: dict[str, list[tuple[str, EntryWithRelations]]] = {}
         self._metaphone_alternate: dict[str, list[tuple[str, EntryWithRelations]]] = {}
@@ -78,7 +75,6 @@ class CandidateMatcher:
         Creates indexes for:
         - canonical_lower -> entry
         - alias_lower -> entry
-        - soundex -> list[(form, entry)]
         - metaphone_primary -> list[(form, entry)] (primary Double Metaphone code)
         - metaphone_alternate -> list[(form, entry)] (alternate Double Metaphone code)
         """
@@ -118,15 +114,6 @@ class CandidateMatcher:
             clean_word = re.sub(r"[^a-zA-Z]", "", word)
             if len(clean_word) < 2:
                 continue
-
-            # Soundex index (using jellyfish - rapidfuzz doesn't have it)
-            try:
-                soundex = jellyfish.soundex(clean_word)
-                if soundex not in self._soundex_index:
-                    self._soundex_index[soundex] = []
-                self._soundex_index[soundex].append((text, entry))
-            except Exception:
-                pass  # Skip if soundex fails
 
             # Double Metaphone index - stores both primary and alternate codes
             try:
@@ -187,18 +174,7 @@ class CandidateMatcher:
                     match_type="exact_alias",
                 )
 
-        # 3. Phonetic matching (Soundex)
-        soundex_matches = self._find_soundex_matches(text)
-        for form, entry, base_confidence in soundex_matches:
-            if entry.id not in candidates or candidates[entry.id].confidence < base_confidence:
-                candidates[entry.id] = MatchCandidate(
-                    entry=entry,
-                    confidence=base_confidence,
-                    matched_form=form,
-                    match_type="soundex",
-                )
-
-        # 4. Phonetic matching (Metaphone)
+        # 3. Phonetic matching (Metaphone)
         metaphone_matches = self._find_metaphone_matches(text)
         for form, entry, base_confidence in metaphone_matches:
             if entry.id not in candidates or candidates[entry.id].confidence < base_confidence:
@@ -209,7 +185,7 @@ class CandidateMatcher:
                     match_type="metaphone",
                 )
 
-        # 5. Edit distance matching
+        # 4. Edit distance matching
         edit_matches = self._find_edit_distance_matches(text)
         for form, entry, base_confidence in edit_matches:
             if entry.id not in candidates or candidates[entry.id].confidence < base_confidence:
@@ -227,42 +203,6 @@ class CandidateMatcher:
             reverse=True,
         )
         return sorted_candidates[:max_candidates]
-
-    def _find_soundex_matches(
-        self,
-        text: str,
-    ) -> list[tuple[str, EntryWithRelations, float]]:
-        """Find matches using Soundex phonetic algorithm.
-
-        Args:
-            text: Text to match.
-
-        Returns:
-            List of (matched_form, entry, confidence) tuples.
-        """
-        matches: list[tuple[str, EntryWithRelations, float]] = []
-
-        # Get soundex for each word in text
-        words = text.split()
-        for word in words:
-            clean_word = re.sub(r"[^a-zA-Z]", "", word)
-            if len(clean_word) < 2:
-                continue
-
-            try:
-                soundex = jellyfish.soundex(clean_word)
-            except Exception:
-                continue
-
-            if soundex in self._soundex_index:
-                for form, entry in self._soundex_index[soundex]:
-                    # Calculate confidence using rapidfuzz normalized similarity
-                    similarity = fuzz.ratio(text.lower(), form.lower()) / 100.0
-                    confidence = 0.7 * similarity
-                    if confidence > 0.3:  # Minimum threshold
-                        matches.append((form, entry, confidence))
-
-        return matches
 
     def _find_metaphone_matches(
         self,
@@ -533,14 +473,12 @@ class CandidateMatcher:
 
             # Check if this word's phonetic codes match any entry
             try:
-                word_soundex = jellyfish.soundex(word)
                 word_primary, word_alternate = doublemetaphone(word)
             except Exception:
                 continue
 
             has_phonetic_match = (
-                word_soundex in self._soundex_index
-                or (word_primary and word_primary in self._metaphone_primary)
+                (word_primary and word_primary in self._metaphone_primary)
                 or (word_primary and word_primary in self._metaphone_alternate)
                 or (word_alternate and word_alternate in self._metaphone_primary)
                 or (word_alternate and word_alternate in self._metaphone_alternate)

@@ -8,7 +8,7 @@ Context profiles stored at: ~/.asr/dictionaries/contexts/{name}.json
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from pydantic import ValidationError
 
@@ -16,7 +16,6 @@ from asr.config import CONFIG_DIR, _file_lock
 from asr.dictionary.db import (
     get_all_entries,
     get_entries_by_context,
-    get_entries_by_tier,
     get_recent_entries,
 )
 from asr.dictionary.models import (
@@ -92,18 +91,17 @@ class BiasListSelector:
     """Select and rank dictionary entries for ASR bias lists.
 
     The selector combines multiple signals to rank entries:
-    - Tier priority (A > B > C > ...)
+    - Tier priority (critical/standard/low)
     - Boost weight (manual importance)
     - Context relevance
     - Recency (recently used entries rank higher)
-    - Occurrence count (frequently used entries rank higher)
 
     Scoring formula:
         score = boost_weight * tier_weight * recency_decay * context_match
 
     Where:
-        - tier_weight: A=1.0, B=0.9, C=0.8, D=0.7, E=0.6, F=0.5, G=0.4, H=0.3
-        - recency_decay: 1.0 if seen in 30 days, 0.9 if 60 days, 0.8 if 90 days, 0.5 otherwise
+        - tier_weight: A=1.0 (critical), B-D=0.7 (standard), E-H=0.4 (low)
+        - recency_decay: 1.0 if seen in 60 days, 0.5 otherwise
         - context_match: 1.5 if entry has matching context tag, 1.0 otherwise
     """
 
@@ -209,7 +207,7 @@ class BiasListSelector:
     def select_bias_list(
         self,
         context: str | None = None,
-        max_entries: int = 150,
+        max_entries: int = 60,
         min_tier: TierLevel = "H",
         include_contexts: list[str] | None = None,
         exclude_contexts: list[str] | None = None,
@@ -220,8 +218,8 @@ class BiasListSelector:
             score = boost_weight * tier_weight * recency_decay * context_match
 
         Where:
-            - tier_weight: A=1.0, B=0.9, C=0.8, D=0.7, E=0.6, F=0.5, G=0.4, H=0.3
-            - recency_decay: 1.0 if seen in 30 days, 0.9 if 60 days, 0.8 if 90 days, 0.5 otherwise
+            - tier_weight: A=1.0 (critical), B-D=0.7 (standard), E-H=0.4 (low)
+            - recency_decay: 1.0 if seen in 60 days, 0.5 otherwise
             - context_match: 1.5 if entry has matching context tag, 1.0 otherwise
 
         Args:
@@ -274,7 +272,7 @@ class BiasListSelector:
     def select(
         self,
         context: str | None = None,
-        max_entries: int = 150,
+        max_entries: int = 60,
         min_tier: TierLevel = "H",
         include_aliases: bool = True,
         recency_boost_days: int = 30,
@@ -393,18 +391,11 @@ class BiasListSelector:
             else:
                 context_weight = 1.0  # No penalty for non-matching
 
-        # Recency decay: 1.0 if 30 days, 0.9 if 60 days, 0.8 if 90 days, 0.5 otherwise
-        recency_weight = 0.5  # Default for never seen
+        # Recency decay: binary (recent = 60 days, otherwise old)
+        recency_weight = 0.5  # Default for never seen or old
         if entry.last_seen_at:
             days_since = (datetime.now() - entry.last_seen_at).days
-            if days_since <= 30:
-                recency_weight = 1.0
-            elif days_since <= 60:
-                recency_weight = 0.9
-            elif days_since <= 90:
-                recency_weight = 0.8
-            else:
-                recency_weight = 0.5
+            recency_weight = 1.0 if days_since <= 60 else 0.5
 
         return tier_weight * boost * context_weight * recency_weight
 
@@ -535,7 +526,7 @@ class BiasListSelector:
     def get_entries_for_context(
         self,
         context: str,
-        max_entries: int = 150,
+        max_entries: int = 60,
     ) -> list[EntryWithRelations]:
         """Get entries specifically tagged with a context.
 

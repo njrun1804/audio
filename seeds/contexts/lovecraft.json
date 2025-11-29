@@ -1,0 +1,8 @@
+{
+  "name": "lovecraft",
+  "description": "H.P. Lovecraft fiction - cosmic horror, archaic vocabulary, fictional places",
+  "include_tiers": ["B", "C"],
+  "include_contexts": ["lovecraft"],
+  "max_entries": 100,
+  "boost_multiplier": 1.5
+}

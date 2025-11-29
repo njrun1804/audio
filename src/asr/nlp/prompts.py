@@ -114,9 +114,12 @@ CONFIDENCE INTERPRETATION:
 - conf 0.5-0.75: Uncertain - review carefully with context
 - conf < 0.5: Likely error - good candidate for correction
 
-VOCABULARY:
-The vocabulary list contains trusted spellings. Use them to correct words inside <low_conf> tags.
-Do NOT force vocabulary words onto high-confidence text.
+VOCABULARY HINTS (suggestions, not guarantees):
+The vocabulary list contains POSSIBLE terms that MAY appear. They are hints, not facts.
+- Only apply a vocabulary term if the ASR output has a NEAR-MISS (phonetically similar word)
+- Do NOT force vocabulary terms onto text that doesn't sound similar
+- Example: "Ron C harrow" → "Ron Chernow" ✓ (sounds similar)
+- Example: "chair" → "Chernow" ✗ (no phonetic match)
 
 Edit each segment independently. Do not reorder or merge sentences across segments."""
 
@@ -207,6 +210,56 @@ If everything is consistent and correct, return:
 REMINDER: Fewer fixes is better. This transcript is already accurate."""
 
 
+# Final kicker pass - uses extended thinking for deep analysis
+KICKER_SYSTEM = """You are performing a FINAL REVIEW of a CrisperWhisper transcript.
+
+This transcript has ALREADY been corrected by fast passes. Your role is to use
+deep reasoning to catch any subtle issues that were missed.
+
+USE YOUR THINKING to:
+1. Read through the entire transcript carefully
+2. Identify any remaining inconsistencies or errors
+3. Consider context across the full document
+4. Make ONLY high-confidence corrections
+
+CONSTRAINTS:
+- This transcript is ALREADY highly accurate after previous corrections
+- Do NOT introduce new content or words
+- Do NOT make speculative corrections
+- Only fix things you are HIGHLY confident about
+- Prefer NO CHANGES over uncertain changes
+- FEWER CHANGES IS ALWAYS BETTER at this stage"""
+
+
+KICKER_USER = """FINAL REVIEW PASS
+
+Source: CrisperWhisper (verbatim-optimized, already corrected in previous passes)
+Domain: {domain}
+Known vocabulary: {vocabulary}
+
+FULL TRANSCRIPT (after previous corrections):
+{transcript_text}
+
+INSTRUCTIONS:
+Use your thinking to carefully review this transcript. Look for:
+1. Any remaining entity spelling inconsistencies
+2. Obvious errors that previous passes might have missed
+3. High-confidence fixes only
+
+Return a JSON object:
+{{
+  "final_fixes": [
+    {{"segment_id": <id>, "original": "<text>", "corrected": "<text>", "reason": "<reason>", "confidence": "high"}}
+  ],
+  "quality_assessment": "<brief overall assessment>"
+}}
+
+If the transcript is good, return:
+{{"final_fixes": [], "quality_assessment": "Transcript is accurate and consistent."}}
+
+REMEMBER: This is the FINAL pass. Only make changes you are HIGHLY confident about."""
+
+
 def get_pass1_system_prompt(domain: str | None = None) -> str:
     """Get domain-specific Pass 1 system prompt with safety constraints."""
     domain_key = domain if domain in DOMAIN_PROMPTS else "general"
@@ -272,7 +325,8 @@ def format_segments_for_pass1(
 
         formatted.append(segment_data)
 
-    return json.dumps(formatted, indent=2)
+    # Compact JSON - no indent means fewer tokens for Haiku
+    return json.dumps(formatted, separators=(",", ":"))
 
 
 def format_word_confidences(words: list[WordTiming], threshold: float = DEFAULT_LOW_CONFIDENCE_THRESHOLD) -> list[dict]:
@@ -463,6 +517,99 @@ def format_transcript_for_pass2(segments: list) -> str:
     for seg in segments:
         lines.append(f"[{seg.id}] {seg.text}")
     return "\n".join(lines)
+
+
+def validate_phonetic_anchoring(
+    original: str,
+    corrected: str,
+    dictionary_terms: set[str] | None = None,
+    min_similarity: float = 0.5,
+) -> tuple[bool, str | None]:
+    """Validate correction has phonetic anchoring in original text.
+
+    When a correction matches a dictionary term, verify that the original
+    ASR output contains a phonetically similar word ("near-miss").
+
+    This prevents hallucinations where Claude forces dictionary terms onto
+    unrelated words (e.g., "chair" → "Chernow").
+
+    Args:
+        original: The original text before correction
+        corrected: The corrected text
+        dictionary_terms: Set of dictionary terms (lowercase) to check against.
+            If None, skips dictionary validation.
+        min_similarity: Minimum phonetic similarity score (0.0-1.0)
+
+    Returns:
+        Tuple of (is_valid, reason): is_valid=True if anchoring passes,
+        reason explains why validation failed if is_valid=False.
+    """
+    if not original or not corrected:
+        return True, None
+
+    # Only validate corrections that match dictionary terms
+    if dictionary_terms is None:
+        return True, None
+
+    corrected_lower = corrected.lower().strip()
+    if corrected_lower not in dictionary_terms:
+        return True, None  # Not a dictionary term, skip validation
+
+    # Check phonetic similarity between original and corrected
+    try:
+        from rapidfuzz.distance import Levenshtein
+        from metaphone import doublemetaphone
+
+        original_words = original.lower().split()
+        corrected_words = corrected_lower.split()
+
+        # Get metaphone codes for corrected term
+        corrected_meta = []
+        for word in corrected_words:
+            primary, alternate = doublemetaphone(word)
+            if primary:
+                corrected_meta.append(primary)
+
+        if not corrected_meta:
+            return True, None  # Can't compute metaphone, allow
+
+        # Check if any original word has phonetic match
+        for orig_word in original_words:
+            orig_word = orig_word.strip(".,!?;:\"'")
+            if not orig_word:
+                continue
+
+            # Method 1: Edit distance (Levenshtein)
+            for corr_word in corrected_words:
+                # Normalize by length of longer word
+                max_len = max(len(orig_word), len(corr_word))
+                if max_len == 0:
+                    continue
+                distance = Levenshtein.distance(orig_word, corr_word)
+                similarity = 1 - (distance / max_len)
+                if similarity >= min_similarity:
+                    return True, None  # Found edit distance match
+
+            # Method 2: Phonetic match (Double Metaphone)
+            orig_primary, orig_alternate = doublemetaphone(orig_word)
+
+            for corr_meta in corrected_meta:
+                # Primary-primary match (strongest)
+                if orig_primary and orig_primary == corr_meta:
+                    return True, None
+                # Primary-alternate or alternate-primary (weaker but valid)
+                if orig_alternate and orig_alternate == corr_meta:
+                    return True, None
+
+        # No phonetic anchor found
+        return False, f"No phonetic match: '{original}' → '{corrected}'"
+
+    except ImportError:
+        # Dependencies not available, allow the correction
+        return True, None
+    except Exception:
+        # Error in validation, allow the correction
+        return True, None
 
 
 def extract_entities_from_pass1(changes_by_segment: dict[int, list]) -> list[str]:

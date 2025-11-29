@@ -458,12 +458,70 @@ def detect_speech_segments(
         return [(0.0, total_duration)]
 
 
+def _merge_small_segments(
+    segments: list[tuple[float, float]],
+    min_chunk_duration: float,
+    max_chunk_seconds: float,
+    max_gap_seconds: float = 2.0,
+) -> list[tuple[float, float]]:
+    """Merge adjacent small segments to reduce chunk count.
+
+    VAD can create many small segments from conversational speech.
+    This merges them into larger chunks (up to max_chunk_seconds) to
+    reduce GPU setup overhead per chunk.
+
+    Args:
+        segments: List of (start, end) tuples from VAD
+        min_chunk_duration: Merge segments shorter than this
+        max_chunk_seconds: Don't exceed this duration when merging
+        max_gap_seconds: Don't merge segments with gaps larger than this
+
+    Returns:
+        Merged segment list with fewer, larger segments
+    """
+    if not segments or len(segments) <= 1:
+        return segments
+
+    merged = []
+    current_start, current_end = segments[0]
+
+    for next_start, next_end in segments[1:]:
+        current_duration = current_end - current_start
+        next_duration = next_end - next_start
+        gap = next_start - current_end  # Gap between segments
+        merged_duration = next_end - current_start  # Total if we merge
+
+        # Merge conditions:
+        # 1. Gap is small enough (not a long silence)
+        # 2. Current or next chunk is small (under min threshold)
+        # 3. Merging won't exceed max chunk duration
+        should_merge = (
+            gap <= max_gap_seconds
+            and (current_duration < min_chunk_duration or next_duration < min_chunk_duration)
+            and merged_duration <= max_chunk_seconds
+        )
+
+        if should_merge:
+            # Extend current segment to include next
+            current_end = next_end
+        else:
+            # Finalize current segment, start new one
+            merged.append((current_start, current_end))
+            current_start, current_end = next_start, next_end
+
+    # Don't forget the last segment
+    merged.append((current_start, current_end))
+
+    return merged
+
+
 def chunk_audio(
     samples: np.ndarray,
     speech_segments: list[tuple[float, float]],
     max_chunk_seconds: float = 60.0,
     overlap_seconds: float = 2.0,
     inter_segment_overlap: float = 0.25,
+    min_chunk_duration: float = 20.0,
     sample_rate: int = 16000,
     temp_dir: Path | None = None,
 ) -> list[AudioChunk]:
@@ -471,6 +529,7 @@ def chunk_audio(
     Split audio into chunks for processing.
 
     Respects speech segment boundaries when possible.
+    Merges small segments to reduce chunk count (GPU overhead optimization).
     Adds inter-segment overlap to prevent chopped words at VAD boundaries.
 
     Args:
@@ -479,6 +538,7 @@ def chunk_audio(
         max_chunk_seconds: Maximum chunk duration
         overlap_seconds: Overlap when splitting long segments (>max_chunk_seconds)
         inter_segment_overlap: Overlap added between consecutive VAD segments
+        min_chunk_duration: Merge segments shorter than this with neighbors
         sample_rate: Sample rate in Hz
         temp_dir: Directory for temporary chunk files
     """
@@ -494,12 +554,18 @@ def chunk_audio(
     if not speech_segments:
         return []
 
+    # POST-VAD MERGING: Combine small adjacent segments to reduce chunk count
+    # This is critical for performance - each chunk has MLX GPU setup overhead
+    merged_segments = _merge_small_segments(
+        speech_segments, min_chunk_duration, max_chunk_seconds
+    )
+
     total_samples = len(samples)
     total_duration = total_samples / sample_rate
     chunks = []
     chunk_id = 0
 
-    for i, (seg_start, seg_end) in enumerate(speech_segments):
+    for i, (seg_start, seg_end) in enumerate(merged_segments):
         # Add inter-segment overlap at the start (except for first segment)
         # This helps Whisper handle words that might be cut at VAD boundaries
         if i > 0 and inter_segment_overlap > 0:
@@ -510,7 +576,7 @@ def chunk_audio(
             seg_start = overlap_start
 
         # Add inter-segment overlap at the end (except for last segment)
-        if i < len(speech_segments) - 1 and inter_segment_overlap > 0:
+        if i < len(merged_segments) - 1 and inter_segment_overlap > 0:
             seg_end = min(total_duration, seg_end + inter_segment_overlap)
 
         seg_duration = seg_end - seg_start
@@ -637,13 +703,15 @@ def prepare_audio(
     else:
         speech_segments = [(0.0, duration)]
 
-    # Create chunks with inter-segment overlap for better accuracy
+    # Create chunks with post-VAD merging for fewer, larger chunks
+    # This is critical for performance - MLX has setup overhead per chunk
     chunks = chunk_audio(
         samples=samples,
         speech_segments=speech_segments,
         max_chunk_seconds=config.max_chunk_seconds,
         overlap_seconds=config.chunk_overlap_seconds,
         inter_segment_overlap=config.vad.inter_segment_overlap,
+        min_chunk_duration=config.vad.min_chunk_duration,
         temp_dir=cache_dir / "chunks",
     )
 

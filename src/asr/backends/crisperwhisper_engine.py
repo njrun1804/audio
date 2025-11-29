@@ -170,8 +170,9 @@ class CrisperWhisperEngine(BaseEngine):
         )
 
         # Use lock to serialize Metal GPU operations
+        # Pass numpy array directly to avoid disk I/O (mlx_whisper supports np.ndarray)
         with _MLX_LOCK:
-            result = mlx_whisper.transcribe(str(audio.path), **kwargs)
+            result = mlx_whisper.transcribe(audio.samples, **kwargs)
 
         return self._parse_result(result, audio.start_time, word_timestamps)
 

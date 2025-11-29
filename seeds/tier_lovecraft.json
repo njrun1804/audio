@@ -1,0 +1,308 @@
+[
+  {
+    "canonical": "Cthulhu",
+    "type": "misc",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Kutulu", "Kthulhu"],
+    "contexts": ["lovecraft"],
+    "pronunciations": [{"ipa": "/kəˈθuːluː/", "phoneme_sequence": "K AH TH UW L UW"}],
+    "notes": "Great Old One, cosmic entity"
+  },
+  {
+    "canonical": "Nyarlathotep",
+    "type": "misc",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Nyarlothotep"],
+    "contexts": ["lovecraft"],
+    "pronunciations": [{"ipa": "/naɪˌɑːrləˈθoʊtɛp/"}],
+    "notes": "The Crawling Chaos"
+  },
+  {
+    "canonical": "Azathoth",
+    "type": "misc",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Blind Idiot God"
+  },
+  {
+    "canonical": "Yog-Sothoth",
+    "type": "misc",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Yog Sothoth"],
+    "contexts": ["lovecraft"],
+    "notes": "The Key and the Gate"
+  },
+  {
+    "canonical": "Dagon",
+    "type": "misc",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Deep One deity"
+  },
+  {
+    "canonical": "Arkham",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Fictional Massachusetts town"
+  },
+  {
+    "canonical": "Innsmouth",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Coastal town with Deep One influence"
+  },
+  {
+    "canonical": "Miskatonic",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Miskatonic University"],
+    "contexts": ["lovecraft"],
+    "notes": "University in Arkham"
+  },
+  {
+    "canonical": "R'lyeh",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Rlyeh"],
+    "contexts": ["lovecraft"],
+    "pronunciations": [{"ipa": "/ˈruːli.ɛ/"}],
+    "notes": "Sunken city where Cthulhu sleeps"
+  },
+  {
+    "canonical": "Yuggoth",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Planet (Pluto) inhabited by Mi-Go"
+  },
+  {
+    "canonical": "Dunwich",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Decayed Massachusetts village"
+  },
+  {
+    "canonical": "Kingsport",
+    "type": "location",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Coastal town"
+  },
+  {
+    "canonical": "Necronomicon",
+    "type": "product",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Fictional grimoire by Abdul Alhazred"
+  },
+  {
+    "canonical": "Abdul Alhazred",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Alhazred"],
+    "contexts": ["lovecraft"],
+    "notes": "The Mad Arab, author of Necronomicon"
+  },
+  {
+    "canonical": "Randolph Carter",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Carter"],
+    "contexts": ["lovecraft"],
+    "notes": "Dream-questing protagonist"
+  },
+  {
+    "canonical": "Herbert West",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "contexts": ["lovecraft"],
+    "notes": "Re-Animator protagonist"
+  },
+  {
+    "canonical": "eldritch",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Weird, sinister, ghostly"
+  },
+  {
+    "canonical": "cyclopean",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Massive, ancient architecture"
+  },
+  {
+    "canonical": "gibbous",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Moon phase, also convex/swollen"
+  },
+  {
+    "canonical": "gambrel",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Type of roof"
+  },
+  {
+    "canonical": "blasphemous",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.0,
+    "contexts": ["lovecraft"]
+  },
+  {
+    "canonical": "antediluvian",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Before the flood, extremely ancient"
+  },
+  {
+    "canonical": "squamous",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Scaly"
+  },
+  {
+    "canonical": "rugose",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Wrinkled, ridged"
+  },
+  {
+    "canonical": "foetid",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "aliases": ["fetid"],
+    "contexts": ["lovecraft"],
+    "notes": "Smelling rotten"
+  },
+  {
+    "canonical": "charnel",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Associated with death/corpses"
+  },
+  {
+    "canonical": "daemoniac",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "aliases": ["demoniac"],
+    "contexts": ["lovecraft"],
+    "notes": "Archaic spelling of demonic"
+  },
+  {
+    "canonical": "noisome",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Foul-smelling, offensive"
+  },
+  {
+    "canonical": "miasma",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Noxious atmosphere"
+  },
+  {
+    "canonical": "effluvium",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Unpleasant smell/discharge"
+  },
+  {
+    "canonical": "tenebrous",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Dark, shadowy"
+  },
+  {
+    "canonical": "ichor",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Blood of the gods, or foul fluid"
+  },
+  {
+    "canonical": "batrachian",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.5,
+    "contexts": ["lovecraft"],
+    "notes": "Frog-like"
+  },
+  {
+    "canonical": "phosphorescence",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.0,
+    "contexts": ["lovecraft"]
+  },
+  {
+    "canonical": "luminescence",
+    "type": "jargon",
+    "tier": "C",
+    "boost_weight": 2.0,
+    "contexts": ["lovecraft"]
+  },
+  {
+    "canonical": "Providence",
+    "type": "location",
+    "tier": "C",
+    "boost_weight": 2.0,
+    "contexts": ["lovecraft"],
+    "notes": "Lovecraft's hometown, Rhode Island"
+  },
+  {
+    "canonical": "H.P. Lovecraft",
+    "type": "person",
+    "tier": "B",
+    "boost_weight": 3.0,
+    "aliases": ["Lovecraft", "Howard Phillips Lovecraft", "HPL"],
+    "contexts": ["lovecraft"],
+    "notes": "The author himself"
+  }
+]

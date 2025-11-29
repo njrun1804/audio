@@ -94,6 +94,17 @@ except ImportError:
     filter_entities_by_type = None
     deduplicate_entities = None
 
+# Discovery pipeline (NER → Dictionary)
+from asr.dictionary.discovery import (
+    DiscoveredNoun,
+    DiscoveryResult,
+    add_discovered_to_pending,
+    approve_pending_noun,
+    discover_proper_nouns,
+    get_pending_nouns,
+    reject_pending_noun,
+)
+
 # Auto-initialize dictionary directory on import
 _DICT_DIR = Path.home() / ".asr" / "dictionaries"
 _DICT_DIR.mkdir(parents=True, exist_ok=True)
@@ -164,4 +175,12 @@ __all__ = [
     "filter_entities_by_type",
     "deduplicate_entities",
     "ENTITY_TYPES",
+    # Discovery (NER → Dictionary pipeline)
+    "discover_proper_nouns",
+    "add_discovered_to_pending",
+    "get_pending_nouns",
+    "approve_pending_noun",
+    "reject_pending_noun",
+    "DiscoveredNoun",
+    "DiscoveryResult",
 ]
