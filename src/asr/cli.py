@@ -1634,7 +1634,7 @@ def evaluate(
 
         import time  # Import once, outside loop
         from concurrent.futures import ThreadPoolExecutor
-        from asr.logging import SessionLogger
+        from asr.logging import TranscriptLogger
 
         # Build vocab prompt once (same for all stories)
         if stats.total_entries > 0:
@@ -1701,15 +1701,15 @@ def evaluate(
                     continue
 
                 # Initialize session logger for this story
-                session_logger = SessionLogger(audio_path)
-                session_logger.log_config(
-                    model="crisperwhisper",
-                    language=config.language,
-                    use_vad=True,
-                    word_timestamps=word_timestamps,
-                    correct=correct,
-                    domain="lovecraft",
-                )
+                session_logger = TranscriptLogger(audio_path)
+                session_logger.set_config({
+                    "model": "crisperwhisper",
+                    "language": config.language,
+                    "use_vad": True,
+                    "word_timestamps": word_timestamps,
+                    "correct": correct,
+                    "domain": "lovecraft",
+                })
                 session_logger.log_audio_prepared(duration, len(chunks))
 
                 # Transcribe (GPU-bound, can't parallelize)
@@ -1833,14 +1833,10 @@ def evaluate(
 
                 results.append(result)
 
-                # Close session logger for this story
-                total_words = sum(len(seg.text.split()) for seg in all_segments)
-                session_logger.log_session_complete(
-                    total_words=total_words,
-                    total_segments=len(all_segments),
-                    chunks_processed=len(chunks),
-                )
-                session_logger.close()
+                # Finalize session logger for this story
+                session_logger.metrics.total_words = sum(len(seg.text.split()) for seg in all_segments)
+                session_logger.metrics.total_segments = len(all_segments)
+                session_logger.finalize()
 
         # Summary
         if results:
