@@ -121,7 +121,15 @@ The vocabulary list contains POSSIBLE terms that MAY appear. They are hints, not
 - Example: "Ron C harrow" → "Ron Chernow" ✓ (sounds similar)
 - Example: "chair" → "Chernow" ✗ (no phonetic match)
 
-Edit each segment independently. Do not reorder or merge sentences across segments."""
+Edit each segment independently. Do not reorder or merge sentences across segments.
+
+SEGMENT BOUNDARY RULES (CRITICAL FOR TIMING ALIGNMENT):
+- Each segment has a fixed ID, start time, and end time that MUST NOT CHANGE
+- Do NOT merge content from one segment into another
+- Do NOT split a segment into multiple segments
+- Do NOT reorder sentences across segment boundaries
+- Edit ONLY the text content within each segment's boundaries
+- The segment structure is immutable - only the text inside can change"""
 
 
 PASS1_USER = """CORRECTION TASK
@@ -153,61 +161,67 @@ IMPORTANT:
 - Changes should only affect text that was inside <low_conf> tags
 - If no changes needed, return {{"corrected_segments": []}}
 - FEWER CHANGES IS BETTER - this transcription is already accurate
-- Do NOT correct things that "sound wrong" but might be what was said"""
+- Do NOT correct things that "sound wrong" but might be what was said
+
+SEGMENT RULES:
+- Segment IDs are immutable - return the same IDs you received
+- Do NOT merge or split segments - each segment maps 1:1 to input
+- Corrections apply WITHIN segments only, never ACROSS them"""
 
 
-PASS2_SYSTEM = """You are reviewing a CrisperWhisper transcript for consistency.
+PASS2_SYSTEM = """You are reviewing a CrisperWhisper transcript for ENTITY CONSISTENCY ONLY.
 
 SOURCE: CrisperWhisper (verbatim-optimized Whisper model)
-The transcription is already highly accurate. Your role is MINIMAL cleanup.
+The transcription has ALREADY been corrected in Pass 1. Your ONLY job now is:
 
-TASKS:
-1. Ensure the same entities are spelled identically throughout
-2. Flag OBVIOUS semantic nonsense only (not just awkward phrasing)
-3. Identify clear remaining ASR errors (not stylistic issues)
+1. Find entities (proper nouns, names, terms) spelled DIFFERENTLY in different places
+2. Normalize them to a single canonical spelling
 
 CONSTRAINTS:
-- Do NOT introduce new content or words
-- Do NOT paraphrase or "improve" the writing
-- Only fix clear inconsistencies (e.g., "MacBook Air" vs "Macbook air")
-- Prefer NO CHANGES over uncertain changes
-- This is a verbatim transcript - awkward phrasing may be what was said"""
+- Do NOT rewrite or rephrase any text
+- Do NOT fix grammar, punctuation, or capitalization (already done in Pass 1)
+- ONLY fix entity spelling inconsistencies (e.g., "MacBook Air" vs "Macbook air")
+- If an entity appears only once, do NOT change it
+- Fewer fixes is ALWAYS better - only fix clear inconsistencies
+- Do NOT introduce new content or words"""
 
 
-PASS2_USER = """CONSISTENCY REVIEW
+PASS2_USER = """ENTITY CONSISTENCY CHECK
 
-Source: CrisperWhisper (verbatim-optimized, already highly accurate)
+Source: CrisperWhisper (already corrected in Pass 1)
 Domain: {domain}
 Known vocabulary: {vocabulary}
 
 FULL TRANSCRIPT:
 {transcript_text}
 
-ENTITIES IDENTIFIED IN PASS 1:
+ENTITIES FROM PASS 1:
 {entities}
 
-TASKS:
-1. Find any entity spelled differently in different places
-2. Flag sentences that don't make semantic sense (NOT just awkward phrasing)
-3. Identify clear remaining ASR errors
+YOUR ONLY TASK:
+Find entities spelled differently in different places and normalize them.
+
+Example:
+- Segment 5: "Macbook air"
+- Segment 12: "MacBook Air"
+- Segment 23: "macbook Air"
+→ Normalize all to "MacBook Air" (most common or vocabulary-matching form)
 
 Return a JSON object:
 {{
   "consistency_fixes": [
-    {{"segment_id": <id>, "original": "<text>", "corrected": "<text>", "reason": "<reason>"}}
+    {{"segment_id": <id>, "original": "<text>", "corrected": "<text>", "reason": "entity consistency: X"}}
   ],
   "entity_map": {{
     "<canonical_spelling>": ["<variant1>", "<variant2>"]
   }},
-  "flags": [
-    {{"segment_id": <id>, "issue": "<description of problem>"}}
-  ]
+  "flags": []
 }}
 
-If everything is consistent and correct, return:
+If all entities are already consistent, return:
 {{"consistency_fixes": [], "entity_map": {{}}, "flags": []}}
 
-REMINDER: Fewer fixes is better. This transcript is already accurate."""
+REMINDER: You are ONLY checking entity consistency. Do NOT fix anything else."""
 
 
 # Final kicker pass - uses extended thinking for deep analysis

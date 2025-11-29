@@ -164,6 +164,13 @@ class VADConfig(BaseModel):
     # Reduces chunk count without exceeding max_chunk_seconds
     min_chunk_duration: float = 20.0  # Merge chunks under 20s with neighbors
 
+    # Soft cap for merge policy: prefer to stay under this duration
+    # Provides headroom before hitting hard cap (max_chunk_seconds)
+    soft_cap_seconds: float = 15.0  # Prefer chunks under 15s
+
+    # Gap limit: don't merge across silences longer than this (topic boundaries)
+    max_gap_seconds: float = 2.0  # Silence > 2s suggests topic change
+
 
 class CorrectionConfig(BaseModel):
     """ASR error correction settings (Sonnet 4.5 with thinking)."""
@@ -172,7 +179,8 @@ class CorrectionConfig(BaseModel):
     passes: Literal[1, 2] = 2
     domain: str | None = None
     vocabulary: list[str] = Field(default_factory=list)
-    dictionary_entries_for_correction: int = 100  # Max dictionary entries to include in correction prompt
+    # Max dictionary entries to include in correction prompt
+    dictionary_entries_for_correction: int = 100
 
 
 class ASRConfig(BaseModel):
@@ -241,7 +249,11 @@ def load_config() -> ASRConfig:
             print(f"Warning: Config validation failed ({e}), using defaults", file=sys.stderr)
             config = ASRConfig()
         except Exception as e:
-            print(f"Warning: Unexpected error loading config ({type(e).__name__}: {e}), using defaults", file=sys.stderr)
+            err_type = type(e).__name__
+            print(
+                f"Warning: Unexpected error loading config ({err_type}: {e}), using defaults",
+                file=sys.stderr,
+            )
             config = ASRConfig()
     else:
         config = ASRConfig()

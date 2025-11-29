@@ -33,9 +33,15 @@ def create_schema(conn: sqlite3.Connection) -> None:
             id TEXT PRIMARY KEY,
             canonical TEXT NOT NULL,
             display TEXT,
-            type TEXT NOT NULL CHECK(type IN ('person', 'org', 'product', 'event', 'location', 'jargon', 'misc')),
-            tier TEXT NOT NULL DEFAULT 'D' CHECK(tier IN ('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H')),
-            boost_weight REAL NOT NULL DEFAULT 1.0 CHECK(boost_weight >= 0.0 AND boost_weight <= 3.0),
+            type TEXT NOT NULL CHECK(type IN (
+                'person', 'org', 'product', 'event', 'location', 'jargon', 'misc'
+            )),
+            tier TEXT NOT NULL DEFAULT 'D' CHECK(tier IN (
+                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
+            )),
+            boost_weight REAL NOT NULL DEFAULT 1.0 CHECK(
+                boost_weight >= 0.0 AND boost_weight <= 3.0
+            ),
             language TEXT NOT NULL DEFAULT 'en',
             occurrence_count INTEGER NOT NULL DEFAULT 0,
             last_seen_at TEXT,

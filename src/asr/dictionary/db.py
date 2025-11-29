@@ -172,7 +172,9 @@ def _row_to_pronunciation(row: sqlite3.Row) -> Pronunciation:
     )
 
 
-def _load_entry_relations(conn: sqlite3.Connection, entry_id: str) -> tuple[list[Alias], list[Pronunciation], list[str]]:
+def _load_entry_relations(
+    conn: sqlite3.Connection, entry_id: str
+) -> tuple[list[Alias], list[Pronunciation], list[str]]:
     """Load all relations for an entry."""
     # Load aliases
     cursor = conn.execute(
@@ -183,7 +185,8 @@ def _load_entry_relations(conn: sqlite3.Connection, entry_id: str) -> tuple[list
 
     # Load pronunciations
     cursor = conn.execute(
-        "SELECT id, entry_id, ipa, phoneme_sequence, language, variant FROM pronunciations WHERE entry_id = ?",
+        """SELECT id, entry_id, ipa, phoneme_sequence, language, variant
+           FROM pronunciations WHERE entry_id = ?""",
         (entry_id,)
     )
     pronunciations = [_row_to_pronunciation(row) for row in cursor.fetchall()]
@@ -645,18 +648,24 @@ def bulk_create_entries(entries: list[EntryWithRelations]) -> int:
                     # Insert aliases
                     for alias in entry.aliases:
                         conn.execute(
-                            "INSERT INTO aliases (entry_id, alias, is_common_misspelling) VALUES (?, ?, ?)",
+                            """INSERT INTO aliases
+                               (entry_id, alias, is_common_misspelling) VALUES (?, ?, ?)""",
                             (entry_id, alias.alias, alias.is_common_misspelling),
                         )
 
                     # Insert pronunciations
                     for pron in entry.pronunciations:
                         conn.execute(
-                            """
-                            INSERT INTO pronunciations (entry_id, ipa, phoneme_sequence, language, variant)
-                            VALUES (?, ?, ?, ?, ?)
-                            """,
-                            (entry_id, pron.ipa, pron.phoneme_sequence, pron.language, pron.variant),
+                            """INSERT INTO pronunciations
+                               (entry_id, ipa, phoneme_sequence, language, variant)
+                               VALUES (?, ?, ?, ?, ?)""",
+                            (
+                                entry_id,
+                                pron.ipa,
+                                pron.phoneme_sequence,
+                                pron.language,
+                                pron.variant,
+                            ),
                         )
 
                     # Insert contexts

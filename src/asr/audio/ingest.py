@@ -125,12 +125,18 @@ def build_audio_filter_chain(
     Returns filter string or None if no filters enabled.
     """
     # SECURITY: Validate numeric parameters to prevent injection
-    if not isinstance(loudness_target_lufs, int) or loudness_target_lufs < -70 or loudness_target_lufs > 0:
-        raise ValueError(f"loudness_target_lufs must be integer between -70 and 0, got {loudness_target_lufs}")
-    if not isinstance(highpass_freq, int) or highpass_freq < 20 or highpass_freq > 2000:
-        raise ValueError(f"highpass_freq must be integer between 20 and 2000 Hz, got {highpass_freq}")
+    if not isinstance(loudness_target_lufs, int) or not (-70 <= loudness_target_lufs <= 0):
+        raise ValueError(
+            f"loudness_target_lufs must be integer between -70 and 0, got {loudness_target_lufs}"
+        )
+    if not isinstance(highpass_freq, int) or not (20 <= highpass_freq <= 2000):
+        raise ValueError(
+            f"highpass_freq must be integer between 20 and 2000 Hz, got {highpass_freq}"
+        )
     if noise_reduction not in ("off", "light", "moderate"):
-        raise ValueError(f"noise_reduction must be 'off', 'light', or 'moderate', got {noise_reduction}")
+        raise ValueError(
+            f"noise_reduction must be 'off', 'light', or 'moderate', got {noise_reduction}"
+        )
 
     filters = []
 
@@ -463,18 +469,22 @@ def _merge_small_segments(
     min_chunk_duration: float,
     max_chunk_seconds: float,
     max_gap_seconds: float = 2.0,
+    soft_cap_seconds: float = 15.0,
 ) -> list[tuple[float, float]]:
-    """Merge adjacent small segments to reduce chunk count.
+    """Merge adjacent small segments with smart caps.
 
     VAD can create many small segments from conversational speech.
-    This merges them into larger chunks (up to max_chunk_seconds) to
-    reduce GPU setup overhead per chunk.
+    This merges them into larger chunks with:
+    - Soft cap (~15s): Prefer to stay under this for optimal context
+    - Hard cap (20s): Never exceed this to fit in memory
+    - Gap limit (2s): Don't merge across long silences (topic boundaries)
 
     Args:
         segments: List of (start, end) tuples from VAD
         min_chunk_duration: Merge segments shorter than this
-        max_chunk_seconds: Don't exceed this duration when merging
+        max_chunk_seconds: Hard cap - never exceed (typically 20s)
         max_gap_seconds: Don't merge segments with gaps larger than this
+        soft_cap_seconds: Soft cap - prefer to stay under (typically 15s)
 
     Returns:
         Merged segment list with fewer, larger segments
@@ -491,14 +501,24 @@ def _merge_small_segments(
         gap = next_start - current_end  # Gap between segments
         merged_duration = next_end - current_start  # Total if we merge
 
-        # Merge conditions:
-        # 1. Gap is small enough (not a long silence)
-        # 2. Current or next chunk is small (under min threshold)
-        # 3. Merging won't exceed max chunk duration
+        # Decision logic:
+        # 1. Never merge if gap is too large (likely topic boundary)
+        # 2. Never merge if it would exceed hard cap
+        # 3. Prefer not to merge if already at soft cap (unless next is tiny)
+        # 4. Always merge if current or next is below minimum
+
+        too_large_gap = gap > max_gap_seconds
+        would_exceed_hard_cap = merged_duration > max_chunk_seconds
+        at_soft_cap = current_duration >= soft_cap_seconds
+        next_is_tiny = next_duration < 3.0  # Very short segment
+        needs_merge = (current_duration < min_chunk_duration or
+                       next_duration < min_chunk_duration)
+
+        # Decide whether to merge
         should_merge = (
-            gap <= max_gap_seconds
-            and (current_duration < min_chunk_duration or next_duration < min_chunk_duration)
-            and merged_duration <= max_chunk_seconds
+            not too_large_gap
+            and not would_exceed_hard_cap
+            and (needs_merge or (not at_soft_cap) or next_is_tiny)
         )
 
         if should_merge:
@@ -522,6 +542,8 @@ def chunk_audio(
     overlap_seconds: float = 2.0,
     inter_segment_overlap: float = 0.25,
     min_chunk_duration: float = 20.0,
+    soft_cap_seconds: float = 15.0,
+    max_gap_seconds: float = 2.0,
     sample_rate: int = 16000,
     temp_dir: Path | None = None,
 ) -> list[AudioChunk]:
@@ -535,10 +557,12 @@ def chunk_audio(
     Args:
         samples: Audio samples as numpy array
         speech_segments: List of (start, end) tuples from VAD
-        max_chunk_seconds: Maximum chunk duration
+        max_chunk_seconds: Maximum chunk duration (hard cap)
         overlap_seconds: Overlap when splitting long segments (>max_chunk_seconds)
         inter_segment_overlap: Overlap added between consecutive VAD segments
         min_chunk_duration: Merge segments shorter than this with neighbors
+        soft_cap_seconds: Prefer chunks under this duration (soft cap)
+        max_gap_seconds: Don't merge across silences longer than this
         sample_rate: Sample rate in Hz
         temp_dir: Directory for temporary chunk files
     """
@@ -557,7 +581,11 @@ def chunk_audio(
     # POST-VAD MERGING: Combine small adjacent segments to reduce chunk count
     # This is critical for performance - each chunk has MLX GPU setup overhead
     merged_segments = _merge_small_segments(
-        speech_segments, min_chunk_duration, max_chunk_seconds
+        speech_segments,
+        min_chunk_duration,
+        max_chunk_seconds,
+        max_gap_seconds=max_gap_seconds,
+        soft_cap_seconds=soft_cap_seconds,
     )
 
     total_samples = len(samples)
@@ -712,6 +740,8 @@ def prepare_audio(
         overlap_seconds=config.chunk_overlap_seconds,
         inter_segment_overlap=config.vad.inter_segment_overlap,
         min_chunk_duration=config.vad.min_chunk_duration,
+        soft_cap_seconds=config.vad.soft_cap_seconds,
+        max_gap_seconds=config.vad.max_gap_seconds,
         temp_dir=cache_dir / "chunks",
     )
 

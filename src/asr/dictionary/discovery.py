@@ -79,7 +79,9 @@ NER_TYPE_MAP = {
 }
 
 
-def _is_weird_enough(text: str, session_counts: dict[str, int] | None = None) -> tuple[bool, str | None]:
+def _is_weird_enough(
+    text: str, session_counts: dict[str, int] | None = None
+) -> tuple[bool, str | None]:
     """Check if a term passes "weirdness" filters for proper noun candidacy.
 
     Filters:
@@ -179,7 +181,10 @@ def discover_proper_nouns(
     from asr.dictionary.db import get_entry_by_canonical, search_entries
 
     result = DiscoveryResult()
-    source_name = Path(source_file).name if isinstance(source_file, (str, Path)) else str(source_file)
+    if isinstance(source_file, (str, Path)):
+        source_name = Path(source_file).name
+    else:
+        source_name = str(source_file)
 
     # Collect all text for NER
     corrected_text = " ".join(seg.text for seg in segments)
@@ -404,8 +409,9 @@ def add_discovered_to_pending(
                 try:
                     create_entry(entry)
                     auto_approved += 1
+                    occ = pending[key]['occurrences']
+                    logger.info(f"Auto-approved: {noun.text} ({occ} occurrences)")
                     del pending[key]
-                    logger.info(f"Auto-approved: {noun.text} ({pending[key]['occurrences']} occurrences)")
                 except Exception as e:
                     logger.warning(f"Failed to auto-approve {noun.text}: {e}")
         else:

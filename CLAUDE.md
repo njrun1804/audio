@@ -27,6 +27,9 @@ asr transcribe file.m4a --profile interactive  # Stay responsive while transcrib
 # Output formats: .json, .srt, .vtt, .md, .txt
 asr transcribe file.m4a -o output.vtt
 
+# Note: When using --correct, JSON word-level timestamps reflect pre-correction Whisper output.
+# Segment text is corrected, but seg.words timestamps remain unchanged.
+
 # Post-processing correction (requires ANTHROPIC_API_KEY)
 asr transcribe file.m4a --correct --domain biography      # With domain-specific prompts
 asr transcribe file.m4a --correct --learn --domain tech   # Learn vocabulary
@@ -142,6 +145,22 @@ The VAD system detects speech segments and splits audio into chunks for transcri
 | `boundary_pad` | 0.15s | Padding added to segment boundaries |
 | `inter_segment_overlap` | 0.2s | Overlap between consecutive segments |
 | `min_chunk_duration` | 20s | Merge chunks shorter than this with neighbors |
+| `soft_cap_seconds` | 15s | Prefer to stay under this duration (soft cap) |
+| `max_gap_seconds` | 2s | Don't merge across silences longer than this |
+
+### Merge Policy (Smart Chunking)
+
+The VAD merge policy uses a three-tier cap system:
+- **Soft cap (15s)**: Prefer to stay under this for optimal context
+- **Hard cap (20s)**: Never exceed to fit in memory/context window
+- **Gap limit (2s)**: Don't merge across long silences (likely topic boundaries)
+
+### Cross-Chunk Context
+
+Sequential transcription uses a **rolling context buffer** (last ~100 words) passed to Whisper's `initial_prompt`. This improves consistency across chunk boundaries:
+- Vocabulary/bias terms are preserved (never truncated)
+- Context from previous chunk helps with entity continuity
+- Only used in sequential mode (parallel chunks can't share context)
 
 ### How It Works
 
@@ -162,6 +181,8 @@ min_silence_duration = 0.5
 boundary_pad = 0.15
 inter_segment_overlap = 0.2
 min_chunk_duration = 20.0
+soft_cap_seconds = 15.0
+max_gap_seconds = 2.0
 ```
 
 ## Resource Profiles
@@ -212,10 +233,33 @@ Two-pass Claude-powered ASR error correction with safety constraints to prevent 
 | Pass | Model | Purpose |
 |------|-------|---------|
 | Pass 1 | Haiku 4.5 | Fix errors inside `<low_conf>` regions only |
-| Pass 2 | Haiku 4.5 | Ensure entity consistency |
+| Pass 2 | Haiku 4.5 | Entity consistency ONLY (normalize spellings) |
 | Kicker | Sonnet 4.5 (thinking) | Final polish with extended thinking (8K budget) |
 
 **Architecture rationale**: Haiku 4.5 is 4-5x faster than Sonnet for pattern-matching ASR corrections. The final "kicker" pass with Sonnet 4.5 extended thinking catches subtle issues that fast passes miss, using full transcript context for deep reasoning.
+
+### Duration-Based Batching
+
+Correction batches target **~30 seconds of audio** instead of fixed segment counts:
+- Min 3 segments per batch (avoid tiny batches)
+- Max 10 segments per batch (avoid token limits)
+- Creates more even context windows since segment lengths vary
+
+### Entity Accumulation
+
+Proper nouns discovered in earlier batches are passed to later batches:
+- First batch: discovers "Ron Chernow" from "Ron Cherno"
+- Later batches: receive context like `"Ron Chernow" (may appear as: Ron Cherno)`
+- Max 10 variants per canonical form, 20 entities in prompt
+- Improves consistency for long transcripts with recurring names
+
+### Segment Boundary Guardrails
+
+The correction pipeline enforces **segment immutability**:
+- Segment IDs, start times, and end times CANNOT change
+- Claude can ONLY edit text content within each segment
+- No merging or splitting segments (preserves timing alignment)
+- This ensures SRT/VTT timestamps remain accurate after correction
 
 ### Options
 
@@ -412,6 +456,7 @@ This tool implements multiple safeguards against ASR correction hallucinations:
 8. **Soft Dictionary Instructions**: Terms are hints, not facts - Claude must apply near-miss rule
 9. **Weirdness Filters**: Discovered nouns must pass length, common-word, and frequency checks
 10. **Top-K Filtering**: Only 60 dictionary terms per session to prevent model confusion
+11. **Word Timestamp Caveat**: The `words` array in JSON output contains timestamps from pre-correction Whisper output. After Claude correction, `seg.text` is updated but `seg.words` remains unchanged. Segment-level timestamps (`start`/`end`) are accurate; word-level timestamps may not perfectly align with corrected text.
 
 ## Internal Architecture
 
@@ -447,6 +492,30 @@ The codebase uses internal helpers to reduce code duplication:
 
 All transcription sessions are logged to `~/.asr/logs/` in JSON-lines format for accuracy analysis and debugging.
 
+### RTF (Real-Time Factor) Logging
+
+After transcription completes, the console displays:
+```
+Transcription: 45.2s | RTF: 3.5x realtime
+```
+
+**Pathology warnings** appear if:
+- `chunks > 40`: "VAD may be too aggressive"
+- `RTF < 1.0` (for files > 60s): "Check system load"
+
+### Segment Debugging
+
+Each segment includes `chunk_id` for debugging VAD issues:
+```json
+{
+  "id": 15,
+  "chunk_id": 3,  // Source chunk for this segment
+  "start": 45.2,
+  "end": 48.7,
+  "text": "..."
+}
+```
+
 ### What's Logged
 
 | Event | Data |
@@ -455,6 +524,7 @@ All transcription sessions are logged to `~/.asr/logs/` in JSON-lines format for
 | `config` | Model, enhancement settings |
 | `audio_prepared` | Duration, chunk count, enhancement filters |
 | `chunk_transcribed` | Word count, confidence stats, low-confidence words |
+| `transcription_complete` | Elapsed time, RTF, chunk count, segment count |
 | `correction_applied` | Segment ID, changes made, corrected text |
 | `correction_rejected` | Segment ID, reason (diff_gating), violations |
 | `pass_complete` | Pass number, model used, segments modified |

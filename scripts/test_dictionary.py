@@ -53,14 +53,16 @@ def main():
     # Test with a misspelling of "Garmin"
     candidates = matcher.find_candidates("Garmyn")
     if candidates:
-        print(f"   'Garmyn' matched to: {candidates[0].entry.canonical} (conf: {candidates[0].confidence:.2f})")
+        match = candidates[0]
+        print(f"   'Garmyn' matched to: {match.entry.canonical} (conf: {match.confidence:.2f})")
     else:
         print("   No candidates found for 'Garmyn'")
 
     # Test with misspelling of "Strava"
     candidates = matcher.find_candidates("Stravva")
     if candidates:
-        print(f"   'Stravva' matched to: {candidates[0].entry.canonical} (conf: {candidates[0].confidence:.2f})")
+        match = candidates[0]
+        print(f"   'Stravva' matched to: {match.entry.canonical} (conf: {match.confidence:.2f})")
     else:
         print("   No candidates found for 'Stravva'")
 

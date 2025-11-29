@@ -20,7 +20,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from asr.config import CONFIG_DIR
 
@@ -132,6 +132,29 @@ class TranscriptLogger:
             "low_conf_pct": round(low_conf_pct, 1),
             "avg_confidence": round(avg_conf, 3),
             "lowest_conf_words": low_conf_words,
+        })
+
+    def log_chunk_timing(
+        self,
+        chunk_index: int,
+        total_chunks: int,
+        chunk_duration_seconds: float,
+        transcription_seconds: float,
+        word_count: int,
+        avg_confidence: float,
+        memory_gb: Optional[float] = None,
+    ) -> None:
+        """Log per-chunk transcription metrics for performance analysis."""
+        chunk_rtf = transcription_seconds / chunk_duration_seconds if chunk_duration_seconds > 0 else 0
+        self._write_event("chunk_timing", {
+            "chunk_index": chunk_index,
+            "total_chunks": total_chunks,
+            "chunk_duration_seconds": round(chunk_duration_seconds, 3),
+            "transcription_seconds": round(transcription_seconds, 3),
+            "chunk_rtf": round(chunk_rtf, 4),
+            "word_count": word_count,
+            "avg_confidence": round(avg_confidence, 4) if avg_confidence else None,
+            "memory_gb": round(memory_gb, 2) if memory_gb else None,
         })
 
     def log_segment_created(self, segment_id: int, text: str, word_count: int) -> None:

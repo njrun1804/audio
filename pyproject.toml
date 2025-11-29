@@ -18,6 +18,7 @@ dependencies = [
     "jellyfish>=1.0",  # Phonetic matching (Soundex fallback)
     "rapidfuzz>=3.0",  # Fast fuzzy matching (56% faster than jellyfish)
     "Metaphone>=0.6",  # Double Metaphone support
+    "psutil>=5.9",  # Resource monitoring for profiling
 ]
 
 [project.optional-dependencies]

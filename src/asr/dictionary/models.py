@@ -55,12 +55,12 @@ class Entry(BaseModel):
 
     id: str = Field(..., description="UUID string identifier")
     canonical: str = Field(..., min_length=1, description="Canonical spelling of the term")
-    display: str | None = Field(default=None, description="Display form if different from canonical")
+    display: str | None = Field(default=None, description="Display form if different")
     type: EntryType = Field(..., description="Category of the entry")
     tier: TierLevel = Field(default="D", description="Priority tier A-H")
     boost_weight: float = Field(default=1.0, ge=0.0, le=3.0, description="Scoring multiplier")
     language: str = Field(default="en", description="ISO language code")
-    occurrence_count: int = Field(default=0, ge=0, description="Number of times seen in transcripts")
+    occurrence_count: int = Field(default=0, ge=0, description="Times seen in transcripts")
     last_seen_at: datetime | None = Field(default=None, description="When last encountered")
     source: str | None = Field(default=None, description="Origin of the entry")
     notes: str | None = Field(default=None, description="Optional notes")
@@ -127,12 +127,12 @@ class EntryWithRelations(BaseModel):
     # Entry fields
     id: str = Field(..., description="UUID string identifier")
     canonical: str = Field(..., min_length=1, description="Canonical spelling of the term")
-    display: str | None = Field(default=None, description="Display form if different from canonical")
+    display: str | None = Field(default=None, description="Display form if different")
     type: EntryType = Field(..., description="Category of the entry")
     tier: TierLevel = Field(default="D", description="Priority tier A-H")
     boost_weight: float = Field(default=1.0, ge=0.0, le=3.0, description="Scoring multiplier")
     language: str = Field(default="en", description="ISO language code")
-    occurrence_count: int = Field(default=0, ge=0, description="Number of times seen in transcripts")
+    occurrence_count: int = Field(default=0, ge=0, description="Times seen in transcripts")
     last_seen_at: datetime | None = Field(default=None, description="When last encountered")
     source: str | None = Field(default=None, description="Origin of the entry")
     notes: str | None = Field(default=None, description="Optional notes")
@@ -141,7 +141,7 @@ class EntryWithRelations(BaseModel):
 
     # Relations
     aliases: list[Alias] = Field(default_factory=list, description="Alternative spellings")
-    pronunciations: list[Pronunciation] = Field(default_factory=list, description="Pronunciation variants")
+    pronunciations: list[Pronunciation] = Field(default_factory=list, description="Pronunciations")
     contexts: list[str] = Field(default_factory=list, description="Associated context names")
 
     def to_entry(self) -> Entry:
@@ -222,7 +222,7 @@ class ContextProfile(BaseModel):
     include_tiers: list[TierLevel] = Field(default_factory=list, description="Tiers to include")
     include_contexts: list[str] = Field(default_factory=list, description="Contexts to include")
     max_entries: int = Field(default=150, ge=1, description="Maximum entries to load")
-    boost_multiplier: float = Field(default=1.0, ge=0.0, le=10.0, description="Global boost multiplier")
+    boost_multiplier: float = Field(default=1.0, ge=0.0, le=10.0, description="Global boost")
 
 
 # Search result model
@@ -235,7 +235,7 @@ class SearchResult(BaseModel):
 
     entry: EntryWithRelations
     score: float = Field(ge=0.0, description="Relevance score")
-    matched_on: str = Field(default="canonical", description="Which field matched (canonical, alias)")
+    matched_on: str = Field(default="canonical", description="Matched field")
 
 
 # Dictionary statistics model

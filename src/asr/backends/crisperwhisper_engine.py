@@ -231,7 +231,8 @@ class CrisperWhisperEngine(BaseEngine):
                     if not word_data:
                         continue
                     # Safely extract word data with type coercion
-                    word_text = str(word_data.get("word", "")) if word_data.get("word") is not None else ""
+                    raw_word = word_data.get("word")
+                    word_text = str(raw_word) if raw_word is not None else ""
                     word_start = float(word_data.get("start", 0))
                     word_end = float(word_data.get("end", 0))
                     word_prob = float(word_data.get("probability", 0.9))

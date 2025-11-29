@@ -38,6 +38,11 @@ MAX_RETRIES = 3
 INITIAL_RETRY_DELAY = 1.0  # seconds
 API_TIMEOUT = 60.0  # seconds
 
+# Duration-based batching: target ~30s of audio per batch for even context
+TARGET_BATCH_DURATION = 30.0  # seconds of audio per batch
+MIN_BATCH_SEGMENTS = 3  # Don't create tiny batches
+MAX_BATCH_SEGMENTS = 10  # Cap to avoid token limits
+
 
 class Corrector:
     """Two-pass ASR error correction pipeline."""
@@ -50,6 +55,7 @@ class Corrector:
         self.provider = provider
         self.config = config or CorrectionConfig()
         self._client = None
+        self.accumulated_entities: dict[str, list[str]] = {}
 
     def __enter__(self):
         """Context manager entry."""
@@ -239,6 +245,9 @@ class Corrector:
         Returns:
             List of corrected segments
         """
+        # Reset entity accumulator for this file
+        self.accumulated_entities = {}
+
         if self.provider == "local":
             return self._correct_local(segments)
 
@@ -357,6 +366,47 @@ class Corrector:
 
         return segments
 
+    def _create_duration_batches(self, segments: list[Segment]) -> list[list[Segment]]:
+        """Create batches targeting ~30s of audio each for even context windows.
+
+        This replaces fixed segment-count batching which creates uneven contexts
+        because segment durations vary from 2s to 30s.
+        """
+        if not segments:
+            return []
+
+        batches = []
+        current_batch = []
+        current_duration = 0.0
+
+        for seg in segments:
+            seg_duration = seg.end - seg.start
+
+            # Check if adding this segment would exceed target duration
+            # Also enforce min/max segment counts
+            would_exceed_duration = (current_duration + seg_duration) > TARGET_BATCH_DURATION
+            at_max_segments = len(current_batch) >= MAX_BATCH_SEGMENTS
+
+            if current_batch and (would_exceed_duration or at_max_segments):
+                # Start new batch if we have enough segments
+                if len(current_batch) >= MIN_BATCH_SEGMENTS:
+                    batches.append(current_batch)
+                    current_batch = [seg]
+                    current_duration = seg_duration
+                else:
+                    # Keep adding to reach minimum
+                    current_batch.append(seg)
+                    current_duration += seg_duration
+            else:
+                current_batch.append(seg)
+                current_duration += seg_duration
+
+        # Don't forget the last batch
+        if current_batch:
+            batches.append(current_batch)
+
+        return batches
+
     def _run_pass1(
         self,
         segments: list[Segment],
@@ -381,14 +431,31 @@ class Corrector:
                 for alias in entry.aliases:
                     dict_terms.add(alias.alias.lower())
 
-        # Process in batches
-        for i in range(0, len(segments), self.config.batch_size):
-            batch = segments[i:i + self.config.batch_size]
+        # Process in duration-based batches
+        batches = self._create_duration_batches(segments)
+        for batch in batches:
             batch_changes, batch_texts = self._correct_batch(
-                batch, vocabulary, domain, dictionary_block, dict_terms
+                batch, vocabulary, domain, dictionary_block, dict_terms,
+                entity_context=self.accumulated_entities,
             )
             changes_by_segment.update(batch_changes)
             corrected_texts.update(batch_texts)
+
+            # Accumulate entities from corrections for consistency across batches
+            for seg_id, changes in batch_changes.items():
+                for change in changes:
+                    # Track proper nouns (capitalized words that were corrected)
+                    corrected = change.corrected.strip()
+                    original = change.original.strip()
+                    if corrected and corrected[0].isupper() and corrected != original:
+                        canonical = corrected
+                        if canonical not in self.accumulated_entities:
+                            self.accumulated_entities[canonical] = []
+                        existing = [v.lower() for v in self.accumulated_entities[canonical]]
+                        if original.lower() not in existing:
+                            self.accumulated_entities[canonical].append(original)
+                        # Cap variants at 10 per canonical
+                        self.accumulated_entities[canonical] = self.accumulated_entities[canonical][:10]
 
             # Track dictionary usage for corrections that match entries
             if dictionary_entries and batch_changes:
@@ -422,6 +489,7 @@ class Corrector:
         domain: str,
         dictionary_block: str = "",
         dictionary_terms: set[str] | None = None,
+        entity_context: dict[str, list[str]] | None = None,
     ) -> tuple[dict[int, list[CorrectionChange]], dict[int, str]]:
         """Correct a batch of segments using Claude with safety constraints.
 
@@ -442,6 +510,18 @@ class Corrector:
         # Format dictionary block with leading newline if present
         dict_block_formatted = f"\n{dictionary_block}\n" if dictionary_block else ""
 
+        # Build entity context block if we have accumulated entities
+        entity_context_block = ""
+        if entity_context:
+            entity_lines = []
+            for canonical, variants in list(entity_context.items())[:20]:  # Limit to 20 entities
+                if variants:
+                    entity_lines.append(f"  - \"{canonical}\" (may appear as: {', '.join(variants[:5])})")
+                else:
+                    entity_lines.append(f"  - \"{canonical}\"")
+            if entity_lines:
+                entity_context_block = "\nKnown entities from earlier segments:\n" + "\n".join(entity_lines) + "\n"
+
         user_prompt = PASS1_USER.format(
             domain=domain,
             vocabulary=vocab_str,
@@ -449,6 +529,11 @@ class Corrector:
             dictionary_block=dict_block_formatted,
             segments_json=segments_json,
         )
+
+        # Prepend entity context before segments_json in the user prompt
+        if entity_context_block:
+            # Insert entity context before segments_json
+            user_prompt = user_prompt.replace(segments_json, entity_context_block + segments_json)
 
         # Get domain-specific system prompt with safety rules
         system_prompt = get_pass1_system_prompt(domain)
@@ -572,10 +657,14 @@ class Corrector:
                     continue  # Skip to next correction
 
                 if not found_segment:
-                    print(f"Warning: Segment ID {seg_correction.id} not found in batch", file=sys.stderr)
+                    seg_id = seg_correction.id
+                    print(f"Warning: Segment ID {seg_id} not found in batch", file=sys.stderr)
 
         except json.JSONDecodeError as e:
-            print(f"Warning: Failed to parse correction response (invalid JSON): {e}", file=sys.stderr)
+            print(
+                f"Warning: Failed to parse correction response (invalid JSON): {e}",
+                file=sys.stderr,
+            )
         except ValidationError as e:
             print(f"Warning: Response doesn't match expected schema: {e}", file=sys.stderr)
         except (ValueError, IndexError) as e:
@@ -661,7 +750,10 @@ class Corrector:
             return corrected_segments, result
 
         except json.JSONDecodeError as e:
-            print(f"Warning: Failed to parse consistency response (invalid JSON): {e}", file=sys.stderr)
+            print(
+                f"Warning: Failed to parse consistency response (invalid JSON): {e}",
+                file=sys.stderr,
+            )
             return segments, Pass2Result()
         except ValidationError as e:
             print(f"Warning: Response doesn't match expected schema: {e}", file=sys.stderr)

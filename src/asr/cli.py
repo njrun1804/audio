@@ -1,5 +1,10 @@
 """CLI for ASR transcription tool."""
 
+import json
+import platform
+import statistics
+import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
@@ -104,46 +109,71 @@ def _transcribe_chunk(
     return (chunk.start_time, segments)
 
 
-def merge_segments(all_segments: list[list[Segment]]) -> list[Segment]:
+def merge_segments(
+    all_segments: list[list[Segment]],
+    chunk_start_times: list[float] | None = None,
+) -> list[Segment]:
     """Merge segments from multiple chunks, handling overlaps.
 
-    Returns new Segment objects with updated IDs (does not mutate originals).
+    Args:
+        all_segments: List of segment lists, one per chunk
+        chunk_start_times: Optional list of chunk start times for chunk_id assignment
+
+    Returns new Segment objects with updated IDs and chunk_id (does not mutate originals).
     """
     if not all_segments:
         return []
 
-    # Flatten and sort by start time
-    flat = [seg for chunk_segs in all_segments for seg in chunk_segs]
+    # Flatten with chunk_id tracking
+    flat: list[tuple[Segment, int]] = []
+    for chunk_idx, chunk_segs in enumerate(all_segments):
+        for seg in chunk_segs:
+            flat.append((seg, chunk_idx))
+
     if not flat:
         return []
-    flat.sort(key=lambda s: s.start)
+
+    # Sort by start time
+    flat.sort(key=lambda x: x[0].start)
 
     # Dedupe overlapping segments (simple approach: keep first occurrence)
-    merged = []
-    for seg in flat:
+    merged: list[tuple[Segment, int]] = []
+    for seg, chunk_idx in flat:
         if not merged:
-            merged.append(seg)
+            merged.append((seg, chunk_idx))
             continue
 
         # Skip if this segment overlaps significantly with the last one
-        last = merged[-1]
+        last_seg, _ = merged[-1]
         seg_duration = seg.end - seg.start
         # Handle zero-duration segments (keep them to avoid division by zero)
         if seg_duration <= 0:
-            merged.append(seg)
+            merged.append((seg, chunk_idx))
             continue
 
-        overlap = max(0, last.end - seg.start)
+        overlap = max(0, last_seg.end - seg.start)
         if overlap > seg_duration * 0.5:
             continue  # Skip duplicate
 
-        merged.append(seg)
+        merged.append((seg, chunk_idx))
 
-    # Re-number segment IDs using model_copy to avoid mutating originals
-    # This prevents ID collision if segments are referenced elsewhere
+    # Re-number segment IDs and assign chunk_id
     renumbered = []
-    for i, seg in enumerate(merged):
-        renumbered.append(seg.model_copy(update={"id": i}))
+    for i, (seg, chunk_idx) in enumerate(merged):
+        renumbered.append(seg.model_copy(update={
+            "id": i,
+            "chunk_id": chunk_idx,
+        }))
+
+    # Assert monotonicity (segments should be sorted by start time)
+    for i in range(len(renumbered) - 1):
+        if renumbered[i].start > renumbered[i + 1].start:
+            import sys
+            print(
+                f"Warning: Non-monotonic segment timestamps at index {i}: "
+                f"{renumbered[i].start:.2f}s > {renumbered[i + 1].start:.2f}s",
+                file=sys.stderr,
+            )
 
     return renumbered
 
@@ -157,7 +187,7 @@ def transcribe(
     ] = None,
     profile: Annotated[
         Optional[str],
-        typer.Option("--profile", help="Resource profile: interactive (responsive), balanced (default), batch (max accuracy)")
+        typer.Option("--profile", help="Resource profile: interactive, balanced (default), batch")
     ] = None,
     language: Annotated[
         Optional[str],
@@ -165,7 +195,7 @@ def transcribe(
     ] = None,
     correct: Annotated[
         bool,
-        typer.Option("--correct", help="Apply ASR error correction via Claude Haiku 4.5 with thinking")
+        typer.Option("--correct", help="Apply ASR error correction via Claude")
     ] = False,
     domain: Annotated[
         Optional[str],
@@ -205,7 +235,7 @@ def transcribe(
     ] = False,
     context: Annotated[
         Optional[str],
-        typer.Option("--context", "-c", help="Dictionary context for bias list (e.g., 'running', 'work')")
+        typer.Option("--context", "-c", help="Dictionary context for bias list (e.g., 'running')")
     ] = None,
     no_auto_context: Annotated[
         bool,
@@ -225,7 +255,8 @@ def transcribe(
     if not engine.is_available():
         _cli_error(
             "CrisperWhisper model not found",
-            f"Run: huggingface-cli download --local-dir {DEFAULT_MODEL_PATH} kyr0/crisperwhisper-unsloth-mlx"
+            f"Run: huggingface-cli download --local-dir {DEFAULT_MODEL_PATH} "
+            "kyr0/crisperwhisper-unsloth-mlx"
         )
         raise typer.Exit(1)
 
@@ -256,7 +287,10 @@ def transcribe(
         config.audio_enhancement.highpass_enabled = False
     if noise_reduction:
         if noise_reduction not in ("off", "light", "moderate"):
-            _cli_error("Invalid noise reduction", f"'{noise_reduction}' (expected: off, light, moderate)")
+            _cli_error(
+                "Invalid noise reduction",
+                f"'{noise_reduction}' (expected: off, light, moderate)"
+            )
             raise typer.Exit(1)
         config.audio_enhancement.noise_reduction = noise_reduction
 
@@ -309,12 +343,15 @@ def transcribe(
                 entries = selector.select_bias_list(context=effective_context)
 
                 if entries:
-                    # Pass context for meta-prompting (e.g., "This is a conversation about running...")
+                    # Pass context for meta-prompting
                     dictionary_prompt = generate_whisper_prompt(
                         entries, max_tokens=200, context=effective_context
                     )
                     if dictionary_prompt:
-                        console.print(f"[dim]Dictionary: {len(entries)} entries loaded for context '{effective_context or 'default'}'[/dim]")
+                        ctx_name = effective_context or 'default'
+                        console.print(
+                            f"[dim]Dictionary: {len(entries)} entries for '{ctx_name}'[/dim]"
+                        )
 
         except Exception as e:
             # Dictionary system is optional - continue without it
@@ -358,6 +395,9 @@ def transcribe(
         task = progress.add_task("Transcribing...", total=len(chunks))
         all_segments = []
 
+        # Start timing for RTF calculation
+        transcription_start = time.time()
+
         # Use parallel transcription for multiple chunks
         max_workers = min(config.max_parallel_chunks, len(chunks))
 
@@ -393,7 +433,9 @@ def transcribe(
                     progress.advance(task)
 
                 if failed_chunks:
-                    console.print(f"[yellow]Warning:[/yellow] {len(failed_chunks)} chunk(s) failed to transcribe")
+                    console.print(
+                        f"[yellow]Warning:[/yellow] {len(failed_chunks)} chunk(s) failed"
+                    )
                     for start_time, error in failed_chunks[:3]:
                         console.print(f"  [dim]Chunk at {start_time:.1f}s: {error[:100]}[/dim]")
 
@@ -402,20 +444,87 @@ def transcribe(
                 all_segments = [segs for _, segs in results]
         else:
             # Sequential transcription (single chunk or parallel disabled)
-            for chunk in chunks:
+            # Use cross-chunk context: rolling buffer of recent text improves accuracy
+            context_buffer = ""
+            MAX_CONTEXT_WORDS = 100  # ~20-30 seconds of speech
+
+            for chunk_idx, chunk in enumerate(chunks):
+                # Build prompt: vocab/bias FIRST, context LAST (gets trimmed)
+                bias_block = effective_prompt or ""
+                ctx_block = f'\nPrevious transcript: "{context_buffer}"' if context_buffer else ""
+
+                # Whisper initial_prompt is limited; trim context to fit, keep vocab intact
+                available = 500 - len(bias_block)
+                chunk_prompt = bias_block + ctx_block[:available] if available > 0 else bias_block
+
+                chunk_start = time.time()
                 segments = engine.transcribe(
                     audio=chunk,
                     word_timestamps=word_timestamps,
                     language=config.language,
-                    initial_prompt=effective_prompt,
+                    initial_prompt=chunk_prompt if chunk_prompt.strip() else None,
                 )
+                chunk_transcription_time = time.time() - chunk_start
                 all_segments.append(segments)
+
+                # Log per-chunk timing metrics
+                chunk_word_count = sum(len(seg.words) if seg.words else 0 for seg in segments)
+                chunk_avg_conf = (
+                    sum(seg.confidence for seg in segments) / len(segments)
+                    if segments else 0
+                )
+                logger.log_chunk_timing(
+                    chunk_index=chunk_idx,
+                    total_chunks=len(chunks),
+                    chunk_duration_seconds=chunk.duration,
+                    transcription_seconds=chunk_transcription_time,
+                    word_count=chunk_word_count,
+                    avg_confidence=chunk_avg_conf,
+                )
+
+                # Update rolling context buffer with this chunk's output
+                for seg in segments:
+                    context_buffer += " " + seg.text
+                # Trim to last N words
+                words = context_buffer.split()
+                context_buffer = " ".join(words[-MAX_CONTEXT_WORDS:])
+
                 progress.advance(task)
 
         progress.update(task, description="Transcription complete")
 
-    # Merge segments
-    segments = merge_segments(all_segments)
+        # Calculate and log RTF
+        transcription_elapsed = time.time() - transcription_start
+        rtf = duration / transcription_elapsed if transcription_elapsed > 0 else 0
+
+        # Log RTF and check for pathologies
+        console.print(
+            f"[dim]Transcription: {transcription_elapsed:.1f}s | RTF: {rtf:.1f}x[/dim]"
+        )
+
+        # Pathology warnings
+        if len(chunks) > 40:
+            console.print(
+                f"[yellow]Warning:[/yellow] High chunk count ({len(chunks)}) - "
+                "VAD may be too aggressive"
+            )
+        if rtf < 1.0 and duration > 60:  # Only warn for files > 1 min
+            console.print(
+                f"[yellow]Warning:[/yellow] RTF below realtime ({rtf:.2f}x)"
+            )
+
+    # Merge segments (pass chunk start times for chunk_id assignment)
+    chunk_start_times = [c.start_time for c in chunks]
+    segments = merge_segments(all_segments, chunk_start_times)
+
+    # Log transcription performance
+    from asr.logging import log_event
+    log_event("transcription_complete", {
+        "elapsed_seconds": round(transcription_elapsed, 2),
+        "rtf": round(rtf, 2),
+        "chunks": len(chunks),
+        "segments": len(segments) if segments else 0,
+    })
 
     # Apply correction if requested
     if correct:
@@ -430,7 +539,7 @@ def transcribe(
         if domain:
             domain_vocab = load_domain_vocabulary(domain)
             if domain_vocab:
-                console.print(f"[dim]Loaded {len(domain_vocab)} terms from {domain} vocabulary[/dim]")
+                console.print(f"[dim]Loaded {len(domain_vocab)} {domain} vocab terms[/dim]")
                 vocabulary.extend(domain_vocab)
 
             # Also load built-in vocabulary for the domain
@@ -448,7 +557,9 @@ def transcribe(
             domain=domain,
         )
 
-        console.print(f"[dim]Applying {correction_config.passes}-pass correction (Sonnet 4.5 with thinking)...[/dim]")
+        console.print(
+            f"[dim]Applying {correction_config.passes}-pass correction (Sonnet 4.5)...[/dim]"
+        )
 
         # Store original segments for vocabulary learning
         original_segments = segments if learn else None
@@ -503,11 +614,17 @@ def transcribe(
                     original_words=original_words,  # Safety gating
                 )
                 if added > 0:
-                    console.print(f"[dim]Added {added} terms to pending vocabulary (review with 'asr vocab pending')[/dim]")
+                    console.print(
+                        f"[dim]Added {added} terms to pending (review: 'asr vocab pending')[/dim]"
+                    )
 
-            # Run NER discovery if available (discovers proper nouns and validates against ASR output)
+            # Run NER discovery if available
             try:
-                from asr.dictionary import _NER_AVAILABLE, discover_proper_nouns, add_discovered_to_pending
+                from asr.dictionary import (
+                    _NER_AVAILABLE,
+                    discover_proper_nouns,
+                    add_discovered_to_pending,
+                )
                 if _NER_AVAILABLE:
                     discovery_result = discover_proper_nouns(
                         segments=segments,
@@ -521,9 +638,14 @@ def transcribe(
                             context=effective_context or domain or "discovered",
                         )
                         if pending_added > 0 or auto_approved > 0:
-                            console.print(f"[dim]NER discovered {len(discovery_result.discovered)} proper nouns: {pending_added} pending, {auto_approved} auto-approved[/dim]")
+                            discovered_count = len(discovery_result.discovered)
+                            console.print(
+                                f"[dim]NER discovered {discovered_count} proper nouns: "
+                                f"{pending_added} pending, {auto_approved} auto-approved[/dim]"
+                            )
                         if discovery_result.rejected_hallucinations:
-                            console.print(f"[dim]Rejected {len(discovery_result.rejected_hallucinations)} hallucinations[/dim]")
+                            rejected_count = len(discovery_result.rejected_hallucinations)
+                            console.print(f"[dim]Rejected {rejected_count} hallucinations[/dim]")
             except ImportError:
                 pass  # NER not installed
 
@@ -558,7 +680,8 @@ def transcribe(
 
         # Save JSON alongside input with error handling
         json_path = file.with_suffix(".json")
-        if not _safe_write_file(json_path, format_transcript(transcript, "json"), f"JSON to {json_path}"):
+        json_content = format_transcript(transcript, "json")
+        if not _safe_write_file(json_path, json_content, f"JSON to {json_path}"):
             raise typer.Exit(1)
         console.print()
         console.print(f"[green]Saved:[/green] {json_path}")
@@ -606,11 +729,12 @@ def config_cmd(
                 console.print(f"  [dim]correction.passes:[/dim] {value['passes']}")
                 console.print(f"  [dim]correction.quality:[/dim] {value['quality']}")
             elif key == "audio_enhancement":
-                console.print(f"  [dim]audio_enhancement.loudness_enabled:[/dim] {value['loudness_enabled']}")
-                console.print(f"  [dim]audio_enhancement.loudness_target_lufs:[/dim] {value['loudness_target_lufs']}")
-                console.print(f"  [dim]audio_enhancement.highpass_enabled:[/dim] {value['highpass_enabled']}")
-                console.print(f"  [dim]audio_enhancement.highpass_freq:[/dim] {value['highpass_freq']}")
-                console.print(f"  [dim]audio_enhancement.noise_reduction:[/dim] {value['noise_reduction']}")
+                console.print(f"  [dim]ae.loudness_enabled:[/dim] {value['loudness_enabled']}")
+                lufs = value['loudness_target_lufs']
+                console.print(f"  [dim]ae.loudness_target_lufs:[/dim] {lufs}")
+                console.print(f"  [dim]ae.highpass_enabled:[/dim] {value['highpass_enabled']}")
+                console.print(f"  [dim]ae.highpass_freq:[/dim] {value['highpass_freq']}")
+                console.print(f"  [dim]ae.noise_reduction:[/dim] {value['noise_reduction']}")
             else:
                 console.print(f"  [dim]{key}:[/dim] {value}")
 
@@ -691,7 +815,8 @@ def correct_transcript(
     )
 
     console.print(f"[bold]Correcting:[/bold] {file.name}")
-    console.print(f"[dim]{correction_config.passes}-pass with thinking | Vocab: {vocabulary or 'none'}[/dim]")
+    vocab_str = vocabulary or 'none'
+    console.print(f"[dim]{correction_config.passes}-pass | Vocab: {vocab_str}[/dim]")
 
     # Use context manager to ensure Anthropic client is properly closed
     # Pass domain as dictionary context for enhanced correction
@@ -723,6 +848,10 @@ def bench(
         bool,
         typer.Option("--warm-up", help="Pre-compile Metal kernels before benchmark")
     ] = True,
+    json_output: Annotated[
+        Optional[Path],
+        typer.Option("--json", help="Export benchmark results to JSON file")
+    ] = None,
 ):
     """Benchmark transcription with different settings.
 
@@ -822,6 +951,52 @@ def bench(
     console.print(f"  Avg words:      {int(avg_words)}")
     console.print(f"  Avg confidence: {avg_conf:.1%}")
 
+    # Export to JSON if requested
+    if json_output:
+        # Calculate standard deviation
+        rtf_values = [r["rtf"] for r in run_results]
+        std_rtf = statistics.stdev(rtf_values) if len(rtf_values) > 1 else 0.0
+
+        # Build JSON structure
+        json_data = {
+            "audio_file": str(file.resolve()),
+            "audio_duration_seconds": duration,
+            "iterations": iterations,
+            "warm_up": warm_up,
+            "results": [
+                {
+                    "iteration": i + 1,
+                    "elapsed_seconds": r["elapsed"],
+                    "rtf": r["rtf"],
+                    "peak_memory_gb": r["memory_gb"],
+                    "word_count": r["words"],
+                    "avg_confidence": r["confidence"],
+                }
+                for i, r in enumerate(run_results)
+            ],
+            "summary": {
+                "avg_rtf": avg_rtf,
+                "min_rtf": min(rtf_values),
+                "max_rtf": max(rtf_values),
+                "std_rtf": std_rtf,
+                "avg_memory_gb": avg_mem,
+                "avg_confidence": avg_conf,
+            },
+            "system_info": {
+                "platform": platform.system(),
+                "python_version": sys.version.split()[0],
+                "model": "crisperwhisper",
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        # Write JSON file with pretty printing
+        json_content = json.dumps(json_data, indent=2)
+        if not _safe_write_file(json_output, json_content, f"benchmark results"):
+            raise typer.Exit(1)
+        console.print()
+        console.print(f"[green]Benchmark results saved:[/green] {json_output}")
+
 
 @app.command()
 def vocab(
@@ -882,7 +1057,7 @@ def vocab(
         domains = list_domains()
         if not domains:
             console.print("[dim]No vocabularies found.[/dim]")
-            console.print("[dim]Create one with: asr vocab add -d <domain> -t \"term1, term2\"[/dim]")
+            console.print("[dim]Create: asr vocab add -d <domain> -t \"term1, term2\"[/dim]")
             return
 
         console.print(f"[bold]Vocabularies:[/bold] {VOCAB_DIR}")
@@ -970,7 +1145,8 @@ def vocab(
         auto_candidates = get_auto_approve_candidates()
         if auto_candidates:
             console.print()
-            console.print(f"[dim]{len(auto_candidates)} terms have 3+ occurrences (safe to auto-approve)[/dim]")
+            count = len(auto_candidates)
+            console.print(f"[dim]{count} terms 3+ occurrences (auto-approvable)[/dim]")
             console.print("[dim]Run: asr vocab approve --auto[/dim]")
 
     elif action == "approve":
@@ -1007,7 +1183,8 @@ def vocab(
         console.print(f"[green]Rejected {rejected} terms[/green]")
 
     else:
-        _cli_error("Unknown action", f"'{action}' (valid: list, show, add, remove, pending, approve, reject)")
+        valid = "list, show, add, remove, pending, approve, reject"
+        _cli_error("Unknown action", f"'{action}' (valid: {valid})")
         raise typer.Exit(1)
 
 
@@ -1063,13 +1240,13 @@ def dictionary(
 
     if action == "stats":
         stats = get_stats()
-        console.print(f"[bold]Dictionary Statistics[/bold]")
+        console.print("[bold]Dictionary Statistics[/bold]")
         console.print(f"  Total entries: {stats.total_entries}")
-        console.print(f"  By tier:")
+        console.print("  By tier:")
         for tier, count in sorted(stats.entries_by_tier.items()):
             console.print(f"    {tier}: {count}")
         if stats.entries_by_type:
-            console.print(f"  By type:")
+            console.print("  By type:")
             for t, count in sorted(stats.entries_by_type.items()):
                 console.print(f"    {t}: {count}")
 
@@ -1077,13 +1254,13 @@ def dictionary(
         pending = get_pending_nouns()
         if pending:
             console.print(f"\n  [yellow]Pending approval: {len(pending)}[/yellow]")
-            console.print(f"  [dim]Review with: asr dict pending[/dim]")
+            console.print("  [dim]Review with: asr dict pending[/dim]")
 
     elif action == "pending":
         pending = get_pending_nouns()
         if not pending:
             console.print("[dim]No pending discovered nouns.[/dim]")
-            console.print("[dim]Run 'asr transcribe --correct --learn' to discover proper nouns.[/dim]")
+            console.print("[dim]Run 'asr transcribe --correct --learn' to discover.[/dim]")
             return
 
         console.print(f"[bold]Pending Discovered Nouns[/bold] ({len(pending)} total)")
@@ -1254,15 +1431,16 @@ def dictionary(
                 console.print(f"[dim]Error processing {log_file.name}: {e}[/dim]")
 
         console.print()
-        console.print(f"[bold]Batch Learning Complete[/bold]")
+        console.print("[bold]Batch Learning Complete[/bold]")
         console.print(f"  Discovered: {total_discovered} proper nouns")
         console.print(f"  Added to pending: {total_added}")
         console.print(f"  Auto-approved: {total_auto_approved}")
         if total_added > 0:
-            console.print(f"\n[dim]Review pending: asr dict pending[/dim]")
+            console.print("\n[dim]Review pending: asr dict pending[/dim]")
 
     else:
-        _cli_error("Unknown action", f"'{action}' (valid: stats, pending, approve, reject, search, load, learn)")
+        valid = "stats, pending, approve, reject, search, load, learn"
+        _cli_error("Unknown action", f"'{action}' (valid: {valid})")
         raise typer.Exit(1)
 
 
@@ -1377,7 +1555,7 @@ def evaluate(
     ] = False,
     stories: Annotated[
         Optional[str],
-        typer.Option("--stories", "-s", help="Comma-separated story slugs to evaluate (e.g., 'dagon,the_outsider')")
+        typer.Option("--stories", "-s", help="Comma-separated story slugs (e.g., 'dagon')")
     ] = None,
 ):
     """Evaluate ASR accuracy against reference texts.
@@ -1400,7 +1578,6 @@ def evaluate(
     from asr.dictionary import (
         BiasListSelector,
         generate_whisper_prompt,
-        generate_correction_block,
         init_db,
     )
     from asr.dictionary.db import get_stats
@@ -1482,7 +1659,9 @@ def evaluate(
 
             for i, (story, audio_path) in enumerate(valid_stories):
                 console.print(f"\n[bold]Evaluating: {story.name}[/bold]")
-                console.print(f"[dim]Duration: {story.duration_minutes:.1f} min | Difficulty: {story.difficulty}[/dim]")
+                dur = story.duration_minutes
+                diff = story.difficulty
+                console.print(f"[dim]Duration: {dur:.1f} min | Difficulty: {diff}[/dim]")
 
                 # Get prepared data (blocks if not ready)
                 story, audio_path, ref_text, chunks, duration = pending_future.result()
@@ -1510,7 +1689,7 @@ def evaluate(
                     )
                     all_segments.extend(segments)
                     chunk_time = time.time() - chunk_start
-                    console.print(f"    Chunk {chunk_idx + 1}/{len(chunks)}: {chunk_time:.1f}s", end="\r")
+                    console.print(f"    Chunk {chunk_idx + 1}/{len(chunks)}: {chunk_time:.1f}s", end="\r")  # noqa: E501
                 console.print()  # Clear the \r line
 
                 raw_text = " ".join(seg.text for seg in merge_segments(all_segments))
@@ -1519,10 +1698,15 @@ def evaluate(
                 # Calculate raw WER
                 wer_result = calculate_wer(ref_text, raw_text)
                 total_ref_words += wer_result.reference_words
-                total_errors += wer_result.substitutions + wer_result.insertions + wer_result.deletions
+                total_errors += (
+                    wer_result.substitutions + wer_result.insertions + wer_result.deletions
+                )
 
-                console.print(f"  Time: {transcription_time:.1f}s | RTF: {duration/transcription_time:.1f}x")
-                console.print(f"  [bold]WER (raw): {wer_result.wer*100:.1f}%[/bold] ({wer_result.reference_words} words)")
+                rtf_val = duration / transcription_time
+                console.print(f"  Time: {transcription_time:.1f}s | RTF: {rtf_val:.1f}x")
+                wer_pct = wer_result.wer * 100
+                ref_words = wer_result.reference_words
+                console.print(f"  [bold]WER (raw): {wer_pct:.1f}%[/bold] ({ref_words} words)")
 
                 result = {
                     "name": story.name,
@@ -1544,8 +1728,10 @@ def evaluate(
                     # Use dictionary entries for correction if available
                     correction_vocab = LOVECRAFT_VOCABULARY
                     if dict_entries:
-                        correction_vocab = [e.canonical for e in dict_entries] + LOVECRAFT_VOCABULARY
-                        correction_vocab = list(dict.fromkeys(correction_vocab))  # Dedupe preserving order
+                        dict_names = [e.canonical for e in dict_entries]
+                        correction_vocab = dict_names + LOVECRAFT_VOCABULARY
+                        # Dedupe preserving order
+                        correction_vocab = list(dict.fromkeys(correction_vocab))
 
                     correction_config = CorrectionConfig(
                         passes=2,
@@ -1566,8 +1752,12 @@ def evaluate(
 
                     wer_corrected = calculate_wer(ref_text, corrected_text)
                     improvement = (wer_result.wer - wer_corrected.wer) * 100
+                    wer_corr_pct = wer_corrected.wer * 100
 
-                    console.print(f"  [bold]WER (corrected): {wer_corrected.wer*100:.1f}%[/bold] ({improvement:+.1f}% improvement)")
+                    console.print(
+                        f"  [bold]WER (corrected): {wer_corr_pct:.1f}%[/bold] "
+                        f"({improvement:+.1f}% improvement)"
+                    )
                     result["wer_corrected"] = wer_corrected.wer
                     result["correction_time"] = correction_time
                     result["wer_improvement"] = improvement
