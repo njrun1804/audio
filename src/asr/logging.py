@@ -331,7 +331,8 @@ class TranscriptLogger:
             self._log_buffer.append(event)
 
             # Flush if buffer is full or if this is a critical event
-            critical_events = {"session_start", "session_complete", "error"}
+            # chunk_timing included for real-time visibility during long transcriptions
+            critical_events = {"session_start", "session_complete", "error", "chunk_timing"}
             buffer_full = len(self._log_buffer) >= self._BUFFER_SIZE
             should_flush = buffer_full or event_type in critical_events
 
