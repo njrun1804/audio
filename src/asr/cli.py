@@ -1634,6 +1634,7 @@ def evaluate(
 
         import time  # Import once, outside loop
         from concurrent.futures import ThreadPoolExecutor
+        from asr.logging import SessionLogger
 
         # Build vocab prompt once (same for all stories)
         if stats.total_entries > 0:
@@ -1699,21 +1700,64 @@ def evaluate(
                     console.print("[yellow]  Could not fetch reference text[/yellow]")
                     continue
 
+                # Initialize session logger for this story
+                session_logger = SessionLogger(audio_path)
+                session_logger.log_config(
+                    model="crisperwhisper",
+                    language=config.language,
+                    use_vad=True,
+                    word_timestamps=word_timestamps,
+                    correct=correct,
+                    domain="lovecraft",
+                )
+                session_logger.log_audio_prepared(duration, len(chunks))
+
                 # Transcribe (GPU-bound, can't parallelize)
                 console.print(f"  Transcribing {len(chunks)} chunks...")
                 start = time.time()
 
+                # Cross-chunk context buffer for entity continuity
+                context_buffer = ""
+                MAX_CONTEXT_WORDS = 100
+
                 all_segments = []
                 for chunk_idx, chunk in enumerate(chunks):
                     chunk_start = time.time()
+
+                    # Build prompt: vocab + rolling context from previous chunks
+                    if context_buffer:
+                        # Truncate context to fit within prompt limits
+                        ctx_snippet = context_buffer[-400:]  # ~100 words
+                        chunk_prompt = f"{vocab_prompt}\n\nPrevious transcript: \"{ctx_snippet}\""
+                    else:
+                        chunk_prompt = vocab_prompt
+
                     segments = engine.transcribe(
                         audio=chunk,
                         word_timestamps=word_timestamps,
                         language=config.language,
-                        initial_prompt=vocab_prompt,
+                        initial_prompt=chunk_prompt,
                     )
                     all_segments.extend(segments)
+
+                    # Update rolling context buffer
+                    chunk_text = " ".join(seg.text for seg in segments)
+                    context_buffer = " ".join((context_buffer + " " + chunk_text).split()[-MAX_CONTEXT_WORDS:])
+
                     chunk_time = time.time() - chunk_start
+
+                    # Log chunk timing for analysis
+                    word_count = sum(len(seg.text.split()) for seg in segments)
+                    avg_conf = sum(seg.confidence for seg in segments) / len(segments) if segments else 0
+                    session_logger.log_chunk_timing(
+                        chunk_index=chunk_idx,
+                        total_chunks=len(chunks),
+                        chunk_duration_seconds=chunk.duration,
+                        transcription_seconds=chunk_time,
+                        word_count=word_count,
+                        avg_confidence=avg_conf,
+                    )
+
                     console.print(f"    Chunk {chunk_idx + 1}/{len(chunks)}: {chunk_time:.1f}s", end="\r")  # noqa: E501
                 console.print()  # Clear the \r line
 
@@ -1788,6 +1832,15 @@ def evaluate(
                     result["wer_improvement"] = improvement
 
                 results.append(result)
+
+                # Close session logger for this story
+                total_words = sum(len(seg.text.split()) for seg in all_segments)
+                session_logger.log_session_complete(
+                    total_words=total_words,
+                    total_segments=len(all_segments),
+                    chunks_processed=len(chunks),
+                )
+                session_logger.close()
 
         # Summary
         if results:
