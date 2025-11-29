@@ -629,6 +629,37 @@ def _merge_small_segments(
     # Don't forget the last segment
     merged.append((current_start, current_end))
 
+    # POST-MERGE VALIDATION: Ensure no segment is below hard floor
+    # This catches edge cases where a segment is tiny and couldn't merge
+    # (e.g., last segment with large gap before it, or isolated short speech)
+    # Tiny chunks cause Whisper to hallucinate content to fill the duration.
+    HARD_FLOOR_SECONDS = 10.0  # Never create chunks smaller than this
+
+    if len(merged) >= 2:
+        validated = []
+        i = 0
+        while i < len(merged):
+            start, end = merged[i]
+            duration = end - start
+
+            if duration < HARD_FLOOR_SECONDS:
+                # Tiny segment - merge with neighbor (prefer backward)
+                if validated:
+                    # Backward merge: extend previous segment to include this one
+                    prev_start, prev_end = validated[-1]
+                    validated[-1] = (prev_start, end)
+                elif i < len(merged) - 1:
+                    # Forward merge: extend this into next segment
+                    next_start, next_end = merged[i + 1]
+                    merged[i + 1] = (start, next_end)
+                else:
+                    # Only segment left - keep it (can't merge with nothing)
+                    validated.append((start, end))
+            else:
+                validated.append((start, end))
+            i += 1
+        merged = validated
+
     return merged
 
 
